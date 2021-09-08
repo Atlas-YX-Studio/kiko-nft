@@ -1,6 +1,14 @@
 address 0x222 {
 module NFTMarket {
 
+    use 0x1::Event;
+    use 0x1::Errors;
+    use 0x1::Account;
+    use 0x1::Signer;
+    use 0x1::Token;
+    use 0x1::Vector;
+    use 0x1::NFTGallery;
+
     // ******************** Initial Offering ********************
     // 盲盒首发列表
     struct BoxInitialOffering<BoxToken: store, PayToken: store> has key, store {
@@ -121,6 +129,7 @@ module NFTMarket {
 
     // NFT商品信息，用于封装NFT
     struct NFTSellInfo<NFTMeta: store, NFTBody: store, PayToken: store> has store, drop {
+        seller: address,
         // nft item
         nft: NFT<NFTMeta, NFTBody>,
         // nft id
@@ -153,7 +162,7 @@ module NFTMarket {
         buyer: address,
     }
 
-    // NFT出售，挂单子
+    // NFT出售，挂单子,将我自己的 nft 移动到 NFTSellInfo
     public fun nft_sell() {
 
     }
@@ -168,10 +177,60 @@ module NFTMarket {
 
     }
 
-    // NFT购买
-    public fun nft_buy() {
+    // NFT购买 id = NFTSellInfo id
+    public fun nft_buy<NFTMeta: store, NFTBody: store, PayToken: store>(signer: &signer, id: u64) acquires NFTSelling{
+        let user_address = Signer::address_of(signer);
+        let nft_token = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(user_address);
 
+        // nft selling list
+        let items = nft_token.items;
+
+        // 把 nft 从 items 取出，
+        let nftSellInfo = find_Sell_info_by_id<NFTMeta,NFTBody>(items,id);
+        let nft = nftSellInfo.nft;
+
+        // 把我的 stc 转给 买家
+
+        // 同意一下
+        NFTGallery::accept<NFTMeta,NFTBody>(signer);
+
+        // 转给 我自己
+        NFTGallery::deposit<NFTMeta,NFTBody>(signer,nft);
+
+        //发送 NFTSellEvent 事件
+        Event::emit_event<NFTSellEvent>(&mut nft_token.sell_events,
+            NFTSellEvent {
+                seller: address,
+                id: u64,
+                pay_token_code: Token::TokenCode,
+                final_price: u128,
+                buyer: address,
+            },
+        );
     }
+
+    fun find_Sell_info_by_id<NFTMeta: store, NFTBody: store>(c: &vector<NFTSellInfo<NFTMeta, NFTBody, PayToken>>, id: u64): Option<u64> {
+        let result;
+        let len = Vector::length(c);
+        if (len == 0) {
+            return result
+        };
+        let nftSellInfos = len - 1;
+        loop {
+            // NFTSellInfo<NFTMeta, NFTBody, PayToken>
+            let nftSellInfo = Vector::borrow(c, nftSellInfos);
+            let nft = nftSellInfo.nft;
+            if (NFT::get_id(nft) == id) {
+                result = nftSellInfo;
+                return result
+            };
+            if (nftSellInfos == 0) {
+                return result
+            };
+            nftSellInfos = nftSellInfos - 1;
+        }
+    }
+
 
     // ******************** Platform Buyback ********************
     // NFT回购列表
