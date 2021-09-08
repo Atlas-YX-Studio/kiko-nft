@@ -44,7 +44,6 @@ module NFTMarket {
     struct BoxSelling<BoxToken: store, PayToken: store> has key, store {
         // selling list
         items: vector<BoxSellInfo<BoxToken, PayToken>>,
-        bid_events: Event::EventHandle<BoxBidEvent>,
         sell_events: Event::EventHandle<BoxSellEvent>,
     }
 
@@ -55,10 +54,11 @@ module NFTMarket {
         box_tokens: Token::Token<BoxToken>,
         // selling price
         selling_price: u128,
+        // top price bid tokens
+        bid_tokens: Token::Token<PayToken>,
         // buyer address
-        buyer: address,
-        // top price tokens
-        top_tokens: Token::Token<PayToken>,
+        bider: address,
+        bid_events: Event::EventHandle<BoxBidEvent>,
     }
 
     // 盲盒出价事件
@@ -85,10 +85,10 @@ module NFTMarket {
         quantity: u128,
         // selling price
         selling_price: u128,
-        // buyer address
-        buyer: address,
         // final price
         final_price: u128,
+        // buyer address
+        buyer: address,
     }
 
     // 盲盒发售
@@ -127,10 +127,10 @@ module NFTMarket {
         id: u64,
         // selling price
         selling_price: u128,
-        // top price tokens
-        top_tokens: Token::Token<PayToken>,
+        // top price bid tokens
+        bid_tokens: Token::Token<PayToken>,
         // buyer address
-        buyer: address,
+        bider: address,
         bid_events: Event::EventHandle<NFTSellEvent<NFTMeta>>,
     }
 
