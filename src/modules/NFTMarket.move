@@ -153,7 +153,7 @@ module NFTMarket {
         buyer: address,
     }
 
-    // NFT发售
+    // NFT出售，挂单子
     public fun nft_sell() {
 
     }
