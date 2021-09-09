@@ -15,6 +15,8 @@ module NFTMarket {
     const INSUFFICIENT_BALANCE: u64 = 100003;
     const ID_NOT_EXIST: u64 = 100004;
 
+    const OFFERING_NOT_EXISTS : u64 = 100006;
+
     // ******************** Initial Offering ********************
     // 盲盒首发列表
     struct BoxInitialOffering<BoxToken: store, PayToken: store> has key, store {
@@ -131,6 +133,7 @@ module NFTMarket {
         // nft selling list
         items: vector<NFTSellInfo<NFTMeta, NFTBody, PayToken>>,
         sell_events: Event::EventHandle<NFTSellEvent<NFTMeta>>,
+        bid_events: Event::EventHandle<NFTSellEvent<NFTMeta>>,
     }
 
     // NFT商品信息，用于封装NFT
@@ -146,7 +149,6 @@ module NFTMarket {
         bid_tokens: Token::Token<PayToken>,
         // buyer address
         bider: address,
-        bid_events: Event::EventHandle<NFTSellEvent<NFTMeta>>,
     }
 
     // NFT出价事件
@@ -169,17 +171,67 @@ module NFTMarket {
     }
 
     // NFT出售，挂单子,将我自己的 nft 移动到 NFTSellInfo
-    public fun nft_sell() {
-
+    public fun nft_sell<NFTMeta: store, NFTBody: store, PayToken: store>(account: &signer, id: u64, selling_price: u128) acquires NFTSelling{
+        let nft_selling = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
+        // 判断 NFTSelling 是否存在
+        assert(exists<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), Errors::invalid_argument(OFFERING_NOT_EXISTS));
+        let owner_address = Signer::address_of(account);
+        // 从自己的账户取出 一个 NFT token
+        let nft = Account::withdraw<NFTMeta, NFTBody>(owner_address, 1);
+        let nft_sell_info = NFTSellInfo<NFTMeta, NFTBody, PayToken> {
+            seller: owner_address,
+            nft: nft,
+            id: id,
+            selling_price: selling_price,
+            bid_tokens: Token::token_code<PayToken>(),
+            bider: @0x1,
+        };
+        Vector::push_back(&mut nft_selling.items, nft_sell_info);
     }
 
     // NFT出价
-    public fun nft_bid() {
+    public fun nft_bid<NFTMeta: store, NFTBody: store, PayToken: store>(account: &signer, id: u64, price: u128) acquires NFTSelling{
+        let nft_token = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
+        let nftSellInfo = find_ntf_sell_info_by_id<NFTMeta,NFTBody>(&nft_token.items,id);
+        //出价者的地址
+        let user_address = Signer::address_of(account);
 
+        if(price >= nftSellInfo.selling_price){
+            nft_buy<NFTMeta, NFTBody, PayToken>(account,id);
+        }else{
+            //判断 是否已经有人出价，如果有，需要还回去
+            // 判断依据bid_tokens 是否》0
+            nftSellInfo.bider = user_address;
+
+            // top price bid tokens
+            bid_tokens: Token::Token<PayToken>,
+
+            //发送 NFTBidEvent 事件
+            Event::emit_event<NFTBidEvent>( &mut nft_token.bid_events,bid_event
+                NFTBidEvent {
+                    seller: nftSellInfo.seller,
+                    id: id,
+                    pay_token_code: Token::token_code<PayToken>(),
+                    selling_price: nftSellInfo.selling_price,
+                    bid_price: price,
+                    bider: user_address,
+                },
+            );
+        }
     }
 
-    // NFT接受报价
-    public fun nft_accept_bid() {
+    // NFT接受报价 卖出去
+    public fun nft_accept_bid<NFTMeta: store, NFTBody: store, PayToken: store>(account: &signer, id: u64) acquires NFTSelling{
+
+        let user_address = Signer::address_of(account);
+
+        let nft_token = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
+
+        let nftSellInfo = find_ntf_sell_info_by_id<NFTMeta,NFTBody>(&nft_token.items,id);
+
+        // 将 nft 直接转给 出价者
+
+        // 将 支付币种 PayToken 从 pool 转到 自己账户，
 
     }
 
@@ -204,6 +256,7 @@ module NFTMarket {
 
         // nft 转给 我自己
         NFTGallery::deposit<NFTMeta,NFTBody>(account,nftSellInfo.nft);
+
         //发送 NFTSellEvent 事件
         Event::emit_event<NFTSellEvent>(&mut nft_token.sell_events,
             NFTSellEvent {
