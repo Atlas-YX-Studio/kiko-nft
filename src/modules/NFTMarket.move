@@ -10,27 +10,30 @@ module NFTMarket {
     use 0x1::Vector;
     use 0x1::NFTGallery;
 
-    const NFT_MARKET_ADDRESS: address = @0x64c66296d98d6ab08579b14487157e05;
+    const NFT_MARKET_ADDRESS: address = @0x222;
 
     //error
-    const INSUFFICIENT_BALANCE: u64 = 100003;
-    const ID_NOT_EXIST: u64 = 100004;
+    const PERMISSION_DENIED: u64 = 200001;
+    const OFFERING_NOT_EXISTS : u64 = 200002;
+    const INSUFFICIENT_BALANCE: u64 = 200003;
+    const ID_NOT_EXIST: u64 = 200004;
 
-    const OFFERING_NOT_EXISTS : u64 = 100006;
 
     // ******************** Initial Offering ********************
     // box initial offering struct
-    struct BoxInitialOffering<BoxToken: store, PayToken: store> has key, store {
+    struct BoxOffering<BoxToken: store, PayToken: store> has key, store {
         // box tokens
         box_tokens: Token::Token<BoxToken>,
         // selling price for PayToken
         selling_price: u128,
-        offering_events: Event::EventHandle<BoxInitialOfferingEvent>,
+        // selling start time for box
+        selling_time: u64,
+        offering_events: Event::EventHandle<BoxOfferingEvent>,
         sell_events: Event::EventHandle<BoxOfferingSellEvent>,
     }
 
     // box initial offering event
-    struct BoxInitialOfferingEvent has drop, store {
+    struct BoxOfferingEvent has drop, store {
         box_token_code: Token::TokenCode,
         pay_token_code: Token::TokenCode,
         // box quantity
@@ -51,33 +54,77 @@ module NFTMarket {
         buyer: address,
     }
 
-    // init all resource
+    // init market resource for different PayToken
     public fun init_market<NFTMeta: store, NFTBody: store, BoxToken: store, PayToken: store>(sender: &signer) {
-        move_to(sender, BoxInitialOffering {
-            box_tokens: Token::zero<BoxToken>(),
-            selling_price: 0,
-            offering_events: Event::new_event_handle<BoxInitialOfferingEvent>(sender),
-            sell_events: Event::new_event_handle<BoxOfferingSellEvent>(sender),
-        });
-        move_to(sender, BoxSelling {
-            items: Vector::empty<BoxSellInfo<BoxToken, PayToken>>,
-            sell_events: Event::new_event_handle<BoxSellEvent>(sender),
-            bid_events: Event::new_event_handle<BoxBidEvent>(sender),
-        });
-        move_to(sender, NFTSelling {
-            items: Vector::empty<NFTSellInfo<NFTMeta, NFTBody, PayToken>>,
-            sell_events: Event::new_event_handle<NFTSellEvent>(sender),
-            bid_events: Event::new_event_handle<NFTBidEvent>(sender),
-        });
-        move_to(sender, NFTBuyBack {
-            items: Vector::empty<NFTSellInfo<NFTMeta, NFTBody, PayToken>>,
-            sell_events: Event::new_event_handle<NFTBuyBackSellEvent>(sender),
-        });
+        let sender_address = Signer::address_of(sender);
+        if (!exists<BoxSelling<BoxToken, PayToken>>(sender_address)) {
+            move_to(sender, BoxSelling<BoxToken, PayToken> {
+                items: Vector::empty<BoxSellInfo<BoxToken, PayToken>>,
+                sell_events: Event::new_event_handle<BoxSellEvent>(sender),
+                bid_events: Event::new_event_handle<BoxBidEvent>(sender),
+            });
+        };
+        if (!exists<NFTSelling<NFTMeta, NFTBody>>(sender_address)) {
+            move_to(sender, NFTSelling<NFTMeta, NFTBody> {
+                items: Vector::empty<NFTSellInfo<NFTMeta, NFTBody, PayToken>>,
+                sell_events: Event::new_event_handle<NFTSellEvent>(sender),
+                bid_events: Event::new_event_handle<NFTBidEvent>(sender),
+            });
+        };
     }
 
     // box initial offering
-    public fun box_initial_offering() {
+    public fun box_initial_offering<NFTMeta: store, NFTBody: store, BoxToken: store, PayToken: store>(
+        sender: &signer,
+        box_amount: u128,
+        selling_price: u128,
+        selling_time: u64,
+    ) acquires BoxOffering {
+        let sender_address = Signer::address_of(sender);
+        assert(signer_address == NFT_MARKET_ADDRESS, PERMISSION_DENIED);
+        // check exists
+        if (!exists<BoxOffering<BoxToken, PayToken>>(sender_address)) {
+            move_to(sender, BoxOffering {
+                box_tokens,
+                selling_price,
+                selling_time,
+                offering_events: Event::new_event_handle<BoxOfferingEvent>(sender),
+                sell_events: Event::new_event_handle<BoxOfferingSellEvent>(sender),
+            });
+        };
+        let offering = borrow_global_mut<BoxOffering<BoxToken, PayToken>>(sender_address);
+        // transfer box to offering pool
+        assert(Account::balance<PayToken>(sender_address) >= selling_price, INSUFFICIENT_BALANCE);
+        let box_tokens = Account::withdraw<BoxToken>(sender, box_amount);
+        Token::deposit<BoxToken>(&offering.box_tokens, box_tokens);
+        // init other market
+        init_market<NFTMeta, NFTBody, BoxToken, PayToken>(sender);
+    }
 
+    // buy box from offering
+    public fun box_buy_from_offering<BoxToken: store, PayToken: store>(sender: &signer, quantity: u128)
+    acquires BoxOffering {
+        assert(exists<BoxOffering<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), OFFERING_NOT_EXISTS);
+        let offering = borrow_global_mut<BoxOffering<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
+        let sender_address = Signer::address_of(sender);
+        // transfer PayToken to platform
+        let total_price = offering.selling_price * quantity;
+        assert(Account::balance<PayToken>(sender_address) >= total_price, INSUFFICIENT_BALANCE);
+        Account::pay_from<PayToken>(sender, NFT_MARKET_ADDRESS, total_price);
+        // transfer box to buyer
+        let box_tokens = Token::withdraw<BoxToken>(&mut offering.box_tokens, quantity);
+        Account::deposit_to_self(sender, box_tokens);
+        // emit event
+        Event::emit_event(
+            &mut offering.sell_events,
+            BoxOfferingSellEvent{
+                box_token_code: Token::token_code<BoxToken>(),
+                pay_token_code: Token::token_code<PayToken>(),
+                quantity,
+                total_price,
+                buyer: sender_address,
+            }
+        );
     }
 
     // ******************** Box Transaction ********************
@@ -135,11 +182,11 @@ module NFTMarket {
     // 盲盒发售
     public fun box_sell() {}
 
-    // 盲盒出价
-    public fun box_bid() {}
-
     // 盲盒接受报价
     public fun box_accept_bid() {}
+
+    // 盲盒出价
+    public fun box_bid() {}
 
     // 盲盒购买
     public fun box_buy() {}

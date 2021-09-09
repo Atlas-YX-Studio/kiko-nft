@@ -145,11 +145,17 @@ module KikoCat01 {
     }
 
     // mint NFT and box
-    public fun mint(sender: &signer, name: vector<u8>, image: vector<u8>, description: vector<u8>, meta: vector<u64>)
-    acquires KikoCatNFTCapability {
+    public fun mint(sender: &signer,
+                    name: vector<u8>,
+                    image: vector<u8>,
+                    description: vector<u8>,
+                    background: vector<u8>,
+                    breed: vector<u8>,
+                    decorate: vector<u8>,
+    ) acquires KikoCatNFTCapability {
         let signer_address = Signer::address_of(sender);
         assert(signer_address == NFT_ADDRESS, PERMISSION_DENIED);
-        mint_nft(signer_address, name, image, description, meta);
+        mint_nft(signer_address, name, image, description, background, breed, decorate);
         mint_box(sender, 1);
     }
 
@@ -157,15 +163,14 @@ module KikoCat01 {
     public fun open_box(sender: &signer) {
         let signer_address = Signer::address_of(sender);
         // get hash last 64 bit and mod nft_size
-        let i = 0;
-        let x = 0;
-        let y = 0;
         let hash = Block::get_parent_hash();
+        let k = 0u64;
+        let i = 0u64;
         while (i < 8) {
-            x = Vector::pop_back<u8>(&mut hash) as u64;
-            y = x << (i * 8) + y;
+            let tmp = Vector::pop_back<u8>(&mut hash) as u64;
+            k = tmp << (i * 8) + k;
         };
-        let idx = y % count_of(signer_address);
+        let idx = k % count_of(signer_address);
         // get a nft
         let nft = withdraw_by_idx(signer_address, idx);
         NFTGallery::accept<KikoCatMeta, KikoCatBody>(sender);
