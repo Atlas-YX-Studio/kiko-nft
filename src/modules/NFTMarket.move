@@ -1,5 +1,6 @@
 address 0x222 {
 module NFTMarket {
+    use 0x1::Token;
 
     use 0x1::Event;
     use 0x1::Errors;
@@ -18,18 +19,18 @@ module NFTMarket {
     const OFFERING_NOT_EXISTS : u64 = 100006;
 
     // ******************** Initial Offering ********************
-    // 盲盒首发列表
+    // box initial offering struct
     struct BoxInitialOffering<BoxToken: store, PayToken: store> has key, store {
         // box tokens
         box_tokens: Token::Token<BoxToken>,
         // selling price for PayToken
         selling_price: u128,
-        offering_events: Event::EventHandle<BoxOfferingEvent>,
+        offering_events: Event::EventHandle<BoxInitialOfferingEvent>,
         sell_events: Event::EventHandle<BoxOfferingSellEvent>,
     }
 
-    // 盲盒首发事件
-    struct BoxOfferingEvent has drop, store {
+    // box initial offering event
+    struct BoxInitialOfferingEvent has drop, store {
         box_token_code: Token::TokenCode,
         pay_token_code: Token::TokenCode,
         // box quantity
@@ -38,7 +39,7 @@ module NFTMarket {
         total_price: u128,
     }
 
-    // 盲盒首发卖出事件
+    // box offering sell event
     struct BoxOfferingSellEvent has drop, store {
         box_token_code: Token::TokenCode,
         pay_token_code: Token::TokenCode,
@@ -50,7 +51,31 @@ module NFTMarket {
         buyer: address,
     }
 
-    // 盲盒首发
+    // init all resource
+    public fun init_market<NFTMeta: store, NFTBody: store, BoxToken: store, PayToken: store>(sender: &signer) {
+        move_to(sender, BoxInitialOffering {
+            box_tokens: Token::zero<BoxToken>(),
+            selling_price: 0,
+            offering_events: Event::new_event_handle<BoxInitialOfferingEvent>(sender),
+            sell_events: Event::new_event_handle<BoxOfferingSellEvent>(sender),
+        });
+        move_to(sender, BoxSelling {
+            items: Vector::empty<BoxSellInfo<BoxToken, PayToken>>,
+            sell_events: Event::new_event_handle<BoxSellEvent>(sender),
+            bid_events: Event::new_event_handle<BoxBidEvent>(sender),
+        });
+        move_to(sender, NFTSelling {
+            items: Vector::empty<NFTSellInfo<NFTMeta, NFTBody, PayToken>>,
+            sell_events: Event::new_event_handle<NFTSellEvent>(sender),
+            bid_events: Event::new_event_handle<NFTBidEvent>(sender),
+        });
+        move_to(sender, NFTBuyBack {
+            items: Vector::empty<NFTSellInfo<NFTMeta, NFTBody, PayToken>>,
+            sell_events: Event::new_event_handle<NFTBuyBackSellEvent>(sender),
+        });
+    }
+
+    // box initial offering
     public fun box_initial_offering() {
 
     }
@@ -61,6 +86,7 @@ module NFTMarket {
         // selling list
         items: vector<BoxSellInfo<BoxToken, PayToken>>,
         sell_events: Event::EventHandle<BoxSellEvent>,
+        bid_events: Event::EventHandle<BoxBidEvent>,
     }
 
     // 盲盒商品信息，用于封装盲盒token
@@ -74,7 +100,6 @@ module NFTMarket {
         bid_tokens: Token::Token<PayToken>,
         // buyer address
         bider: address,
-        bid_events: Event::EventHandle<BoxBidEvent>,
     }
 
     // 盲盒出价事件
@@ -108,24 +133,16 @@ module NFTMarket {
     }
 
     // 盲盒发售
-    public fun box_sell() {
-
-    }
+    public fun box_sell() {}
 
     // 盲盒出价
-    public fun box_bid() {
-
-    }
+    public fun box_bid() {}
 
     // 盲盒接受报价
-    public fun box_accept_bid() {
-
-    }
+    public fun box_accept_bid() {}
 
     // 盲盒购买
-    public fun box_buy() {
-
-    }
+    public fun box_buy() {}
 
     // ******************** NFT Transaction ********************
     // NFT出售列表
@@ -152,7 +169,7 @@ module NFTMarket {
     }
 
     // NFT出价事件
-    struct NFTBidEvent<NFTMeta:store> has drop, store {
+    struct NFTBidEvent<NFTMeta: store> has drop, store {
         seller: address,
         id: u64,
         pay_token_code: Token::TokenCode,
@@ -162,7 +179,7 @@ module NFTMarket {
     }
 
     // NFT卖出事件
-    struct NFTSellEvent<NFTMeta:store> has drop, store {
+    struct NFTSellEvent<NFTMeta: store> has drop, store {
         seller: address,
         id: u64,
         pay_token_code: Token::TokenCode,
@@ -301,7 +318,7 @@ module NFTMarket {
     }
 
     // NFT回购出售事件
-    struct NFTBuyBackSellEvent<NFTMeta:store> has drop, store {
+    struct NFTBuyBackSellEvent<NFTMeta: store> has drop, store {
         seller: address,
         id: u64,
         pay_token_code: Token::TokenCode,
@@ -310,14 +327,9 @@ module NFTMarket {
     }
 
     // NFT回购
-    public fun nft_buy_back() {
-
-    }
+    public fun nft_buy_back() {}
 
     // NFT回购出售
-    public fun nft_buy_back_sell() {
-
-    }
-
+    public fun nft_buy_back_sell() {}
 }
 }
