@@ -9,6 +9,12 @@ module NFTMarket {
     use 0x1::Vector;
     use 0x1::NFTGallery;
 
+    const NFT_MARKET_ADDRESS: address = @0x64c66296d98d6ab08579b14487157e05;
+
+    //error
+    const INSUFFICIENT_BALANCE: u64 = 100003;
+    const ID_NOT_EXIST: u64 = 100004;
+
     // ******************** Initial Offering ********************
     // 盲盒首发列表
     struct BoxInitialOffering<BoxToken: store, PayToken: store> has key, store {
@@ -178,59 +184,54 @@ module NFTMarket {
     }
 
     // NFT购买 id = NFTSellInfo id
-    public fun nft_buy<NFTMeta: store, NFTBody: store, PayToken: store>(signer: &signer, id: u64) acquires NFTSelling{
-        let user_address = Signer::address_of(signer);
-        let nft_token = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(user_address);
+    public fun nft_buy<NFTMeta: store, NFTBody: store, PayToken: store>(account: &signer, id: u64) acquires NFTSelling{
 
-        // nft selling list
-        let items = nft_token.items;
+        let user_address = Signer::address_of(account);
 
-        // 把 nft 从 items 取出，
-        let nftSellInfo = find_Sell_info_by_id<NFTMeta,NFTBody>(items,id);
-        let nft = nftSellInfo.nft;
+        let nft_token = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
 
-        // 把我的 stc 转给 买家
+        let nftSellInfo = find_ntf_sell_info_by_id<NFTMeta,NFTBody>(&nft_token.items,id);
+
+        let token_balance = Account::balance<PayToken>(user_address);
+        let selling_price = nftSellInfo.selling_price;
+
+        assert(token_balance >= selling_price, Errors::invalid_argument(INSUFFICIENT_BALANCE));
+
+        Account::pay_from<PayToken>(account,nftSellInfo.seller,selling_price);
 
         // 同意一下
-        NFTGallery::accept<NFTMeta,NFTBody>(signer);
+        NFTGallery::accept<NFTMeta,NFTBody>(account);
 
-        // 转给 我自己
-        NFTGallery::deposit<NFTMeta,NFTBody>(signer,nft);
-
+        // nft 转给 我自己
+        NFTGallery::deposit<NFTMeta,NFTBody>(account,nftSellInfo.nft);
         //发送 NFTSellEvent 事件
         Event::emit_event<NFTSellEvent>(&mut nft_token.sell_events,
             NFTSellEvent {
-                seller: address,
-                id: u64,
-                pay_token_code: Token::TokenCode,
-                final_price: u128,
-                buyer: address,
+                seller: nftSellInfo.seller,
+                id: nftSellInfo.id,
+                pay_token_code: Token::token_code<PayToken>(),
+                final_price: selling_price,
+                buyer: user_address,
             },
         );
     }
 
-    fun find_Sell_info_by_id<NFTMeta: store, NFTBody: store>(c: &vector<NFTSellInfo<NFTMeta, NFTBody, PayToken>>, id: u64): Option<u64> {
-        let result;
+    fun find_ntf_sell_info_by_id<NFTMeta: store, NFTBody: store>(c: &vector<NFTSellInfo<NFTMeta, NFTBody, PayToken>>, id: u64):
+        NFTSellInfo<NFTMeta, NFTBody, PayToken> {
         let len = Vector::length(c);
-        if (len == 0) {
-            return result
-        };
+        assert(len > 0, Errors::invalid_argument(ID_NOT_EXIST));
         let nftSellInfos = len - 1;
         loop {
             // NFTSellInfo<NFTMeta, NFTBody, PayToken>
             let nftSellInfo = Vector::borrow(c, nftSellInfos);
             let nft = nftSellInfo.nft;
             if (NFT::get_id(nft) == id) {
-                result = nftSellInfo;
-                return result
+                return nftSellInfo
             };
-            if (nftSellInfos == 0) {
-                return result
-            };
+            assert(nftSellInfos > 0, Errors::invalid_argument(ID_NOT_EXIST));
             nftSellInfos = nftSellInfos - 1;
         }
     }
-
 
     // ******************** Platform Buyback ********************
     // NFT回购列表
