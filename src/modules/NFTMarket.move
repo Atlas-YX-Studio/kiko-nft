@@ -14,8 +14,9 @@ module NFTMarket {
     //error
     const INSUFFICIENT_BALANCE: u64 = 100003;
     const ID_NOT_EXIST: u64 = 100004;
-
+    const BID_FAILED : u64 = 100005;
     const OFFERING_NOT_EXISTS : u64 = 100006;
+    const NFTSELLINFO_NOT_EXISTS : u64 = 100007;
 
     // ******************** Initial Offering ********************
     // 盲盒首发列表
@@ -134,6 +135,7 @@ module NFTMarket {
         items: vector<NFTSellInfo<NFTMeta, NFTBody, PayToken>>,
         sell_events: Event::EventHandle<NFTSellEvent<NFTMeta>>,
         bid_events: Event::EventHandle<NFTSellEvent<NFTMeta>>,
+        // token_exchange_event: Event::new_event_handle<TokenExchangeEvent>(account),
     }
 
     // NFT商品信息，用于封装NFT
@@ -191,6 +193,7 @@ module NFTMarket {
 
     // NFT出价
     public fun nft_bid<NFTMeta: store, NFTBody: store, PayToken: store>(account: &signer, id: u64, price: u128) acquires NFTSelling{
+
         let nft_token = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
         let nftSellInfo = find_ntf_sell_info_by_id<NFTMeta,NFTBody>(&nft_token.items,id);
         //出价者的地址
@@ -199,15 +202,24 @@ module NFTMarket {
         if(price >= nftSellInfo.selling_price){
             nft_buy<NFTMeta, NFTBody, PayToken>(account,id);
         }else{
-            //判断 是否已经有人出价，如果有，需要还回去
-            // 判断依据bid_tokens 是否》0
+            // 获取出价token数量
+            let bid_tokens = Token::value(&nftSellInfo.bid_tokens);
+            //证明 以前有出价
+            if(bid_tokens > 0){
+                assert(price > bid_tokens, Errors::invalid_argument(BID_FAILED));
+                // 从池子里  扣除 token
+                let pool_tokens = Token::withdraw<PayToken>(&mut nftSellInfo.bid_tokens, bid_tokens);
+                // 支付给原来的用户
+                Account::deposit<PayToken>(nftSellInfo.bider, bid_tokens);
+            };
+            // 从我的账户扣除 PayToken
+            let me_tokens = Account::withdraw<PayToken>(user_address, price);
+            //转到池子里
+            Token::deposit(&mut nftSellInfo.bid_tokens, me_tokens);
             nftSellInfo.bider = user_address;
 
-            // top price bid tokens
-            bid_tokens: Token::Token<PayToken>,
-
             //发送 NFTBidEvent 事件
-            Event::emit_event<NFTBidEvent>( &mut nft_token.bid_events,bid_event
+            Event::emit_event<NFTBidEvent>(&mut nft_token.bid_events,bid_event
                 NFTBidEvent {
                     seller: nftSellInfo.seller,
                     id: id,
@@ -222,17 +234,38 @@ module NFTMarket {
 
     // NFT接受报价 卖出去
     public fun nft_accept_bid<NFTMeta: store, NFTBody: store, PayToken: store>(account: &signer, id: u64) acquires NFTSelling{
-
         let user_address = Signer::address_of(account);
-
         let nft_token = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
-
         let nftSellInfo = find_ntf_sell_info_by_id<NFTMeta,NFTBody>(&nft_token.items,id);
 
-        // 将 nft 直接转给 出价者
+        let bid_tokens = Token::value(&nftSellInfo.bid_tokens);
+        //todo 将 nft 直接转给 出价者，但是不知道 出价者的签名
+
+        // 同意一下
+        NFTGallery::accept<NFTMeta,NFTBody>(xxx);
+        // nft 转给 出价者
+        NFTGallery::deposit<NFTMeta,NFTBody>(xxx,nftSellInfo.nft);
+
+        // 从list中删除 该nft i是数组下标
+        let (result,i) = Vector::index_of(&mut nft_token.items, nftSellInfo);
+        // 如果不为true，证明没有找到该元素
+        assert(result==true, Errors::invalid_argument(NFTSELLINFO_NOT_EXISTS));
+        //list中移除该元素
+        Vector::remove(&mut nft_token.items, i);
 
         // 将 支付币种 PayToken 从 pool 转到 自己账户，
+        Account::deposit<PayToken>(user_address, bid_tokens);
 
+        //发送 卖出 事件
+        Event::emit_event<NFTSellEvent>(&mut nft_token.sell_events,
+            NFTSellEvent {
+                seller: nftSellInfo.seller,
+                id: nftSellInfo.id,
+                pay_token_code: Token::token_code<PayToken>(),
+                final_price: bid_tokens,
+                buyer: user_address,
+            },
+        );
     }
 
     // NFT购买 id = NFTSellInfo id
