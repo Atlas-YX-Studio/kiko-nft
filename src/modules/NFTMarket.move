@@ -18,6 +18,7 @@ module NFTMarket {
     const INSUFFICIENT_BALANCE: u64 = 200003;
     const ID_NOT_EXIST: u64 = 200004;
     const BOX_SELLING_NOT_EXIST: u64 = 200005;
+    const BOX_SELLING_IS_EMPTY: u64 = 200006;
 
 
     // ******************** Initial Offering ********************
@@ -138,7 +139,7 @@ module NFTMarket {
     }
 
     // 盲盒商品信息，用于封装盲盒token
-    struct BoxSellInfo<BoxToken: store, PayToken: store> has store, drop {
+    struct BoxSellInfo<BoxToken: store, PayToken: store> has store, drop, key {
         seller: address,
         // box tokens for selling
         box_tokens: Token::Token<BoxToken>,
@@ -181,23 +182,20 @@ module NFTMarket {
     }
 
     // 盲盒出售
-    public fun box_sell(seller: &signer,sell_price: u128, quantity: u128) acquires BoxSelling{
+    public fun box_sell<BoxToken: store, PayToken: store>(seller: &signer, sell_price: u128) acquires BoxSelling{
         assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), Errors::invalid_argument(BOX_SELLING_NOT_EXIST));
         let seller_address = Signer::address_of(seller);
         let box_sellings = borrow_global_mut<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
 
-        let k = 0;
-        while( k < quantity){
-            let box_sell_info = Account::withdraw<BoxToken, PayToken>(seller_address, 1);
-            let new_box = BoxSellInfo<BoxToken, PayToken> {
-                seller: seller_address,
-                box_tokens: box_sell_info,
-                selling_price: sell_price,
-                bid_tokens: Token::Token<PayToken>,
-                bider: @0x1,
-            };
-            Vector::push_back(&mut box_sellings.items, new_box);
-        }
+        let box_sell_info = Account::withdraw<BoxToken, PayToken>(seller_address, 1);
+        let new_box = BoxSellInfo<BoxToken, PayToken> {
+            seller: seller_address,
+            box_tokens: box_sell_info,
+            selling_price: sell_price,
+            bid_tokens: Token::Token<PayToken>,
+            bider: @0x1,
+        };
+        Vector::push_back(&mut box_sellings.items, new_box);
 
     }
 
@@ -208,11 +206,41 @@ module NFTMarket {
     public fun box_bid() {}
 
     // 盲盒购买
-    public fun box_buy(buyer: &signer, seller: &signer, quantity: u128) {
+    public fun box_buy<BoxToken: store, PayToken: store>(buyer: &signer, seller: &signer) acquires BoxSelling{
+        assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), Errors::invalid_argument(BOX_SELLING_NOT_EXIST));
+        let box_sellings = borrow_global_mut<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
+        let len = Vector::length(&box_sellings.items);
+        assert(len > 0, Errors::invalid_argument(BOX_SELLING_IS_EMPTY));
+
         let buyer_address = Signer::address_of(buyer);
         let seller_address = Signer::address_of(seller);
 
+        let box_sell_info: &mut BoxSellInfo<BoxToken, PayToken>;
+        let k = 0;
+        while ( k < len){
+            let box_item = Vector::borrow(&box_sellings.items, k);
+            if(box_item.seller == seller_address){
+                box_sell_info = box_item;
+                break;
+            };
+            k = k + 1;
+        };
 
+        let token_balance = Account::balance<PayToken>(buyer_address);
+        let selling_price = box_sell_info.selling_price;
+        assert(token_balance >= selling_price, Errors::invalid_argument(INSUFFICIENT_BALANCE));
+
+        Account::pay_from<PayToken>(buyer, seller, selling_price);
+
+        move_to<BoxSellInfo<BoxToken, PayToken>>(buyer, BoxSellInfo<BoxToken, PayToken>{
+            seller: seller_address,
+            box_tokens: box_sell_info.box_tokens,
+            selling_price: selling_price,
+            bid_tokens: box_sell_info.box_tokens,
+            bider: buyer_address,
+        });
+
+        Account::deposit<BoxSellInfo<BoxToken, PayToken>>(buyer_address);
 
     }
 
