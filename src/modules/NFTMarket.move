@@ -6,6 +6,7 @@ module NFTMarket {
     use 0x1::Signer;
     use 0x1::Token;
     use 0x1::Vector;
+    use 0x1::Timestamp;
     use 0x1::NFT::{NFT};
 //    use 0x1::NFTGallery;
 
@@ -14,8 +15,9 @@ module NFTMarket {
     //error
     const PERMISSION_DENIED: u64 = 200001;
     const OFFERING_NOT_EXISTS: u64 = 200002;
-    const INSUFFICIENT_BALANCE: u64 = 200003;
-    const ID_NOT_EXIST: u64 = 200004;
+    const OFFERING_NOT_ON_SALE: u64 = 200003;
+    const INSUFFICIENT_BALANCE: u64 = 200004;
+    const ID_NOT_EXIST: u64 = 200005;
 
 
     // ******************** Initial Offering ********************
@@ -106,6 +108,7 @@ module NFTMarket {
     acquires BoxOffering {
         assert(exists<BoxOffering<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), OFFERING_NOT_EXISTS);
         let offering = borrow_global_mut<BoxOffering<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
+        assert(Timestamp::now_milliseconds() >= offering.selling_time, OFFERING_NOT_ON_SALE);
         let sender_address = Signer::address_of(sender);
         // transfer PayToken to platform
         let total_price = offering.selling_price * quantity;
