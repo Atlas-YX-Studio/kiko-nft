@@ -17,6 +17,7 @@ module NFTMarket {
     const OFFERING_NOT_EXISTS : u64 = 200002;
     const INSUFFICIENT_BALANCE: u64 = 200003;
     const ID_NOT_EXIST: u64 = 200004;
+    const BOX_SELLING_NOT_EXIST: u64 = 200005;
 
 
     // ******************** Initial Offering ********************
@@ -132,7 +133,6 @@ module NFTMarket {
     struct BoxSelling<BoxToken: store, PayToken: store> has key, store {
         // selling list
         items: vector<BoxSellInfo<BoxToken, PayToken>>,
-        last_id: u128,
         sell_events: Event::EventHandle<BoxSellEvent>,
         bid_events: Event::EventHandle<BoxBidEvent>,
     }
@@ -180,8 +180,26 @@ module NFTMarket {
         buyer: address,
     }
 
-    // 盲盒发售
-    public fun box_sell() {}
+    // 盲盒出售
+    public fun box_sell(seller: &signer,sell_price: u128, quantity: u128) acquires BoxSelling{
+        assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), Errors::invalid_argument(BOX_SELLING_NOT_EXIST));
+        let seller_address = Signer::address_of(seller);
+        let box_sellings = borrow_global_mut<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
+
+        let k = 0;
+        while( k < quantity){
+            let box_sell_info = Account::withdraw<BoxToken, PayToken>(seller_address, 1);
+            let new_box = BoxSellInfo<BoxToken, PayToken> {
+                seller: seller_address,
+                box_tokens: box_sell_info,
+                selling_price: sell_price,
+                bid_tokens: Token::Token<PayToken>,
+                bider: @0x1,
+            };
+            Vector::push_back(&mut box_sellings.items, new_box);
+        }
+
+    }
 
     // 盲盒接受报价
     public fun box_accept_bid() {}
@@ -190,7 +208,13 @@ module NFTMarket {
     public fun box_bid() {}
 
     // 盲盒购买
-    public fun box_buy() {}
+    public fun box_buy(buyer: &signer, seller: &signer, quantity: u128) {
+        let buyer_address = Signer::address_of(buyer);
+        let seller_address = Signer::address_of(seller);
+
+
+
+    }
 
     // ******************** NFT Transaction ********************
     // NFT出售列表
