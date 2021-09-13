@@ -499,10 +499,51 @@ module NFTMarket {
         buyer: address,
     }
 
+    public fun test(sender: &signer): address {
+        return Signer::address_of(sender)
+    }
+
     //NFT repurchase
-    public fun nft_buy_back() {}
+    public fun nft_buy_back<NFTMeta: store, NFTBody: store, PayToken: store>(sender: &signer, id: u64, amount: u128) acquires NFTBuyBack {
+
+        let sender_address = Signer::address_of(sender);
+        assert(sender_address == NFT_MARKET_ADDRESS, Errors::invalid_argument(ID_NOT_EXIST));
+        let buyBackList =  borrow_global_mut<NFTBuyBack<NFTMeta, NFTBody, PayToken>>(sender_address);
+
+        let pay_tokens = Account::withdraw<PayToken>(sender, amount);
+        let nft_buy_back_info = NFTBuyBackInfo<NFTMeta, NFTBody, PayToken> {
+            id, 
+            pay_tokens
+        };
+        Vector::push_back<NFTBuyBackInfo<NFTMeta, NFTBody, PayToken>>(&mut buyBackList.items, nft_buy_back_info);
+    }
 
     // NFT repurchase and sale
-    public fun nft_buy_back_sell() {}
+    public fun nft_buy_back_sell<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(sender: &signer, id: u64) acquires NFTBuyBack {
+        let sender_address = Signer::address_of(sender);
+        assert(NFTGallery::is_accept<NFTMeta, NFTBody>(sender_address), Errors::invalid_argument(ID_NOT_EXIST));
+
+        let buyBackList = borrow_global_mut<NFTBuyBack<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
+        let NFTBuyBackInfo {id: _, pay_tokens: payTokens} = pop_ntf_buy_back_info_by_id<NFTMeta, NFTBody, PayToken>(&mut buyBackList.items, id);
+
+        Account::deposit_to_self(sender, payTokens);
+        NFTGallery::transfer<NFTMeta, NFTBody>(sender, id, NFT_MARKET_ADDRESS);
+    }
+
+    fun pop_ntf_buy_back_info_by_id<NFTMeta: store, NFTBody: store, PayToken: store>(c: &mut vector<NFTBuyBackInfo<NFTMeta, NFTBody, PayToken>>, id: u64):
+        NFTBuyBackInfo<NFTMeta, NFTBody, PayToken> {
+        let len = Vector::length(c);
+        assert(len > 0, Errors::invalid_argument(ID_NOT_EXIST));
+        let nftBuyBackInfos = len - 1;
+        loop {
+            // NFTBuyBackInfo<NFTMeta, NFTBody, PayToken>
+            let nftBuyBackInfo = Vector::borrow<NFTBuyBackInfo<NFTMeta, NFTBody, PayToken>>(c, nftBuyBackInfos);
+            if (nftBuyBackInfo.id == id) {
+                return Vector::remove<NFTBuyBackInfo<NFTMeta, NFTBody, PayToken>>(c, nftBuyBackInfos)
+            };
+            assert(nftBuyBackInfos > 0, Errors::invalid_argument(ID_NOT_EXIST));
+            nftBuyBackInfos = nftBuyBackInfos - 1;
+        }
+    }
 }
 }
