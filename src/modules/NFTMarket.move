@@ -293,10 +293,6 @@ module NFTMarket {
             nftSellInfo.bider = user_address;
             // accept
             NFTGallery::accept<NFTMeta, NFTBody>(account);
-
-            // nft_sell_info add Vector
-            Vector::push_back(&mut nft_token.items, nftSellInfo);
-
             //send NFTBidEvent event
             Event::emit_event<NFTBidEvent<NFTMeta>>(&mut nft_token.bid_events,
                 NFTBidEvent {
@@ -308,6 +304,8 @@ module NFTMarket {
                     bider: user_address,
                 }
             );
+            // nft_sell_info add Vector
+            Vector::push_back(&mut nft_token.items, nftSellInfo)
         };
     }
 
@@ -335,6 +333,17 @@ module NFTMarket {
                 buyer: user_address,
             },
         );
+
+        let NFTSellInfo<NFTMeta, NFTBody, PayToken> {
+            seller: _,
+            nft,
+            id: _,
+            selling_price: _,
+            bid_tokens,
+            bider: _,
+        } = nftSellInfo;
+        Token::destroy_zero(bid_tokens);
+        Option::destroy_none(nft);
     }
 
     // NFT buy
@@ -373,6 +382,17 @@ module NFTMarket {
                 buyer: user_address,
             },
         );
+        //todo is error ?
+        let NFTSellInfo<NFTMeta, NFTBody, PayToken> {
+            seller: _,
+            nft,
+            id: _,
+            selling_price: _,
+            bid_tokens,
+            bider: _,
+        } = nft_sell_info;
+        Token::destroy_zero(bid_tokens);
+        Option::destroy_none(nft);
     }
 
     //get nft_sell_info by id
