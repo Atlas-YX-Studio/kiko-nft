@@ -4,12 +4,12 @@ module NFTMarket {
     use 0x1::Event;
     use 0x1::Errors;
     use 0x1::Account;
-    use 0x1::Option::{Self,Option};
+    use 0x1::Option::{Self, Option};
     use 0x1::Signer;
     use 0x1::Token;
     use 0x1::Vector;
     use 0x1::Timestamp;
-    use 0x1::NFT::{Self,NFT};
+    use 0x1::NFT::{Self, NFT};
     use 0x1::NFTGallery;
 
     const NFT_MARKET_ADDRESS: address = @0x222;
@@ -20,8 +20,8 @@ module NFTMarket {
     const OFFERING_NOT_ON_SALE: u64 = 200003;
     const INSUFFICIENT_BALANCE: u64 = 200004;
     const ID_NOT_EXIST: u64 = 200005;
-    const BID_FAILED : u64 = 200006;
-    const NFTSELLINFO_NOT_EXISTS : u64 = 200007;
+    const BID_FAILED: u64 = 200006;
+    const NFTSELLINFO_NOT_EXISTS: u64 = 200007;
 
 
     // ******************** Initial Offering ********************
@@ -246,13 +246,13 @@ module NFTMarket {
         account: &signer,
         id: u64,
         selling_price: u128
-    )acquires NFTSelling{
+    ) acquires NFTSelling {
         let nft_selling = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
         // NFTSelling exists
         assert(exists<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), Errors::invalid_argument(OFFERING_NOT_EXISTS));
         let owner_address = Signer::address_of(account);
         // Withdraw one NFT token from your account
-        let option_nft = NFTGallery::withdraw<NFTMeta,NFTBody>(account,id);
+        let option_nft = NFTGallery::withdraw<NFTMeta, NFTBody>(account, id);
         let nft_sell_info = NFTSellInfo<NFTMeta, NFTBody, PayToken> {
             seller: owner_address,
             nft: option_nft,
@@ -269,17 +269,17 @@ module NFTMarket {
     public fun nft_bid<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(
         account: &signer,
         id: u64, price: u128
-    )acquires NFTSelling{
+    ) acquires NFTSelling {
         let nft_token = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
-        let nftSellInfo = find_ntf_sell_info_by_id<NFTMeta,NFTBody,PayToken>(&mut nft_token.items,id);
+        let nftSellInfo = find_ntf_sell_info_by_id<NFTMeta, NFTBody, PayToken>(&mut nft_token.items, id);
         //bider address
         let user_address = Signer::address_of(account);
-        if(price >= nftSellInfo.selling_price){
-            nft_buy<NFTMeta, NFTBody, PayToken>(account,id);
-        }else{
+        if (price >= nftSellInfo.selling_price) {
+            f_nft_buy<NFTMeta, NFTBody, PayToken>(account, nftSellInfo);
+        } else {
             // get bid token quantity
             let bid_tokens = Token::value(&nftSellInfo.bid_tokens);
-            if(bid_tokens > 0){
+            if (bid_tokens > 0) {
                 assert(price > bid_tokens, Errors::invalid_argument(BID_FAILED));
                 // pool deduct token
                 let pool_tokens = Token::withdraw<PayToken>(&mut nftSellInfo.bid_tokens, bid_tokens);
@@ -292,7 +292,11 @@ module NFTMarket {
             Token::deposit(&mut nftSellInfo.bid_tokens, me_tokens);
             nftSellInfo.bider = user_address;
             // accept
-            NFTGallery::accept<NFTMeta,NFTBody>(account);
+            NFTGallery::accept<NFTMeta, NFTBody>(account);
+
+            // nft_sell_info add Vector
+            Vector::push_back(&mut nft_token.items, nftSellInfo);
+
             //send NFTBidEvent event
             Event::emit_event<NFTBidEvent<NFTMeta>>(&mut nft_token.bid_events,
                 NFTBidEvent {
@@ -311,20 +315,17 @@ module NFTMarket {
     public fun nft_accept_bid<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(
         account: &signer,
         id: u64
-    ) acquires NFTSelling{
+    ) acquires NFTSelling {
         let user_address = Signer::address_of(account);
         let nft_token = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
-        let nftSellInfo = find_ntf_sell_info_by_id<NFTMeta,NFTBody,PayToken>(&mut nft_token.items,id);
+        let nftSellInfo = find_ntf_sell_info_by_id<NFTMeta, NFTBody, PayToken>(&mut nft_token.items, id);
         let bid_tokens = Token::value(&nftSellInfo.bid_tokens);
         let nft = Option::extract(&mut nftSellInfo.nft);
-
         // nft ransfer to bider
-        NFTGallery::deposit_to<NFTMeta,NFTBody>(nftSellInfo.bider,nft);
-
+        NFTGallery::deposit_to<NFTMeta, NFTBody>(nftSellInfo.bider, nft);
         //quchu
         let bid_token = Token::withdraw<PayToken>(&mut nftSellInfo.bid_tokens, bid_tokens);
         Account::deposit<PayToken>(user_address, bid_token);
-
         Event::emit_event<NFTSellEvent<NFTMeta>>(&mut nft_token.sell_events,
             NFTSellEvent {
                 seller: nftSellInfo.seller,
@@ -335,29 +336,38 @@ module NFTMarket {
             },
         );
     }
+
     // NFT buy
     public fun nft_buy<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(
         account: &signer,
         id: u64
-    ) acquires NFTSelling{
-        let user_address = Signer::address_of(account);
-        let nft_token = borrow_global_mut<NFTSelling<NFTMeta , NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
-        let nftSellInfo = find_ntf_sell_info_by_id<NFTMeta,NFTBody,PayToken>(&mut nft_token.items,id);
-        let token_balance = Account::balance<PayToken>(user_address);
-        let selling_price = nftSellInfo.selling_price;
-        assert(token_balance >= selling_price, Errors::invalid_argument(INSUFFICIENT_BALANCE));
-        Account::pay_from<PayToken>(account,nftSellInfo.seller,selling_price);
-        // accept
-        NFTGallery::accept<NFTMeta,NFTBody>(account);
-        let nft = Option::extract(&mut nftSellInfo.nft);
-        // nft transer Own
-        NFTGallery::deposit<NFTMeta,NFTBody>(account,nft);
+    ) acquires NFTSelling {
+        let nft_token = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
+        let nftSellInfo = find_ntf_sell_info_by_id<NFTMeta, NFTBody, PayToken>(&mut nft_token.items, id);
+        f_nft_buy<NFTMeta, NFTBody, PayToken>(account,nftSellInfo);
+    }
 
+    // NFT buy private
+    fun f_nft_buy<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(
+        account: &signer,
+        nft_sell_info: NFTSellInfo<NFTMeta, NFTBody, PayToken>,
+    ) acquires NFTSelling {
+        let user_address = Signer::address_of(account);
+        let nft_token = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
+        let token_balance = Account::balance<PayToken>(user_address);
+        let selling_price = nft_sell_info.selling_price;
+        assert(token_balance >= selling_price, Errors::invalid_argument(INSUFFICIENT_BALANCE));
+        Account::pay_from<PayToken>(account, nft_sell_info.seller, selling_price);
+        // accept
+        NFTGallery::accept<NFTMeta, NFTBody>(account);
+        let nft = Option::extract(&mut nft_sell_info.nft);
+        // nft transer Own
+        NFTGallery::deposit<NFTMeta, NFTBody>(account, nft);
         //send NFTSellEvent event
         Event::emit_event<NFTSellEvent<NFTMeta>>(&mut nft_token.sell_events,
             NFTSellEvent {
-                seller: nftSellInfo.seller,
-                id: nftSellInfo.id,
+                seller: nft_sell_info.seller,
+                id: nft_sell_info.id,
                 pay_token_code: Token::token_code<PayToken>(),
                 final_price: selling_price,
                 buyer: user_address,
@@ -366,7 +376,7 @@ module NFTMarket {
     }
 
     //get nft_sell_info by id
-    fun find_ntf_sell_info_by_id<NFTMeta: copy + store + drop, NFTBody: store,PayToken: store>(
+    fun find_ntf_sell_info_by_id<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(
         c: &mut vector<NFTSellInfo<NFTMeta, NFTBody, PayToken>>,
         id: u64): NFTSellInfo<NFTMeta, NFTBody, PayToken> {
         let len = Vector::length(c);
@@ -377,7 +387,7 @@ module NFTMarket {
             let nftSellInfo = Vector::borrow(c, i);
             let nft = Option::borrow(&nftSellInfo.nft);
             if (NFT::get_id(nft) == id) {
-                return Vector::remove(c,i)
+                return Vector::remove(c, i)
             };
             assert(i > 0, Errors::invalid_argument(ID_NOT_EXIST));
             i = i - 1;
