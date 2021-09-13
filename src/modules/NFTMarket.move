@@ -305,7 +305,7 @@ module NFTMarket {
     public fun nft_bid<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(
         account: &signer,
         id: u64, price: u128
-    ) acquires NFTSelling {
+    ) acquires NFTSelling , Config {
         let nft_token = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
         let nftSellInfo = find_ntf_sell_info_by_id<NFTMeta, NFTBody, PayToken>(&mut nft_token.items, id);
         //bider address
@@ -349,17 +349,29 @@ module NFTMarket {
     public fun nft_accept_bid<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(
         account: &signer,
         id: u64
-    ) acquires NFTSelling {
+    ) acquires NFTSelling,Config {
         let user_address = Signer::address_of(account);
         let nft_token = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
         let nftSellInfo = find_ntf_sell_info_by_id<NFTMeta, NFTBody, PayToken>(&mut nft_token.items, id);
         let bid_tokens = Token::value(&nftSellInfo.bid_tokens);
         let nft = Option::extract(&mut nftSellInfo.nft);
+
+        let (creator_fee,platform_fee) = get_fee(bid_tokens);
+
+        let creator_address = NFT::get_creator<NFTMeta,NFTBody>(&nft);
+        let creator_fee_token = Token::withdraw<PayToken>(&mut nftSellInfo.bid_tokens, creator_fee);
+        Account::deposit<PayToken>(creator_address, creator_fee_token);
+
+        let platform_fee_token = Token::withdraw<PayToken>(&mut nftSellInfo.bid_tokens, platform_fee);
+        Account::deposit<PayToken>(NFT_MARKET_ADDRESS, platform_fee_token);
+
+        let surplus_amount = bid_tokens - creator_fee - creator_fee;
+        let surplus_amount_token = Token::withdraw<PayToken>(&mut nftSellInfo.bid_tokens, surplus_amount);
+        Account::deposit<PayToken>(user_address, surplus_amount_token);
+
         // nft ransfer to bider
         NFTGallery::deposit_to<NFTMeta, NFTBody>(nftSellInfo.bider, nft);
-        //quchu
-        let bid_token = Token::withdraw<PayToken>(&mut nftSellInfo.bid_tokens, bid_tokens);
-        Account::deposit<PayToken>(user_address, bid_token);
+
         Event::emit_event<NFTSellEvent<NFTMeta>>(&mut nft_token.sell_events,
             NFTSellEvent {
                 seller: nftSellInfo.seller,
@@ -386,7 +398,7 @@ module NFTMarket {
     public fun nft_buy<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(
         account: &signer,
         id: u64
-    ) acquires NFTSelling {
+    ) acquires NFTSelling ,Config{
         let nft_token = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
         let nftSellInfo = find_ntf_sell_info_by_id<NFTMeta, NFTBody, PayToken>(&mut nft_token.items, id);
         f_nft_buy<NFTMeta, NFTBody, PayToken>(account,nftSellInfo);
@@ -396,18 +408,32 @@ module NFTMarket {
     fun f_nft_buy<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(
         account: &signer,
         nft_sell_info: NFTSellInfo<NFTMeta, NFTBody, PayToken>,
-    ) acquires NFTSelling {
+    ) acquires NFTSelling ,Config {
         let user_address = Signer::address_of(account);
         let nft_token = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
-        let token_balance = Account::balance<PayToken>(user_address);
         let selling_price = nft_sell_info.selling_price;
+        let token_balance = Account::balance<PayToken>(user_address);
         assert(token_balance >= selling_price, Errors::invalid_argument(INSUFFICIENT_BALANCE));
-        Account::pay_from<PayToken>(account, nft_sell_info.seller, selling_price);
+        let nft = Option::extract(&mut nft_sell_info.nft);
+
+        let (creator_fee,platform_fee) = get_fee(selling_price);
+
+        let creator_address = NFT::get_creator<NFTMeta,NFTBody>(&nft);
+        let creator_fee_token = Account::withdraw<PayToken>(account, creator_fee);
+        Account::deposit<PayToken>(creator_address, creator_fee_token);
+
+        let platform_fee_token = Account::withdraw<PayToken>(account, platform_fee);
+        Account::deposit<PayToken>(NFT_MARKET_ADDRESS, platform_fee_token);
+
+        let surplus_amount = selling_price - creator_fee - creator_fee;
+        let surplus_amount_token = Account::withdraw<PayToken>(account, surplus_amount);
+        Account::deposit<PayToken>(nft_sell_info.seller, surplus_amount_token);
+
         // accept
         NFTGallery::accept<NFTMeta, NFTBody>(account);
-        let nft = Option::extract(&mut nft_sell_info.nft);
         // nft transer Own
         NFTGallery::deposit<NFTMeta, NFTBody>(account, nft);
+
         //send NFTSellEvent event
         Event::emit_event<NFTSellEvent<NFTMeta>>(&mut nft_token.sell_events,
             NFTSellEvent {
