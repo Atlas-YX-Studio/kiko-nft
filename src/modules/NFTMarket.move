@@ -22,7 +22,36 @@ module NFTMarket {
     const ID_NOT_EXIST: u64 = 200005;
     const BID_FAILED: u64 = 200006;
     const NFTSELLINFO_NOT_EXISTS: u64 = 200007;
+    const EXCESSIVE_FEE_RATE: u64 = 200008;
 
+    // ******************** Initial Offering ********************
+    struct Config has key, store {
+        // creator fee, 10 mean 1%
+        creator_fee: u128,
+        // platform fee
+        platform_fee: u128
+    }
+
+    public fun init_config(sender: &signer, creator_fee: u128, platform_fee: u128) {
+        assert(Signer::address_of(sender) == NFT_MARKET_ADDRESS, PERMISSION_DENIED);
+        assert(creator_fee < 10000 && platform_fee < 10000, EXCESSIVE_FEE_RATE);
+
+        move_to<Config>(signer, Config{
+            creator_fee: fee_rate,
+            platform_fee: treasury_fee_rate,
+        });
+    }
+
+    // update
+    public fun update_config (sender: &signer, creator_fee: u128, treasury_fee_rate: u128)
+    acquires Config {
+        assert(Signer::address_of(signer) == CONFIG_ADDRESS, PERMISSION_DENIED);
+        assert(creator_fee < 10000 && platform_fee < 10000, EXCESSIVE_FEE_RATE);
+
+        let config = borrow_global_mut<Config>(CONFIG_ADDRESS);
+        config.creator_fee = fee_rate;
+        config.treasury_fee_rate = treasury_fee_rate;
+    }
 
     // ******************** Initial Offering ********************
     // box initial offering struct
