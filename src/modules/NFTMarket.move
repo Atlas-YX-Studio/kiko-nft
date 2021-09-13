@@ -37,16 +37,16 @@ module NFTMarket {
         assert(Signer::address_of(sender) == NFT_MARKET_ADDRESS, PERMISSION_DENIED);
         assert(creator_fee < 10000 && platform_fee < 10000, EXCESSIVE_FEE_RATE);
 
-        move_to<Config>(signer, Config{
-            creator_fee: fee_rate,
-            platform_fee: treasury_fee_rate,
+        move_to<Config>(sender, Config{
+            creator_fee: creator_fee,
+            platform_fee: platform_fee,
         });
     }
 
     // update
     public fun update_config (sender: &signer, creator_fee: u128, platform_fee: u128)
     acquires Config {
-        assert(Signer::address_of(signer) == NFT_MARKET_ADDRESS, PERMISSION_DENIED);
+        assert(Signer::address_of(sender) == NFT_MARKET_ADDRESS, PERMISSION_DENIED);
         assert(creator_fee < 10000 && platform_fee < 10000, EXCESSIVE_FEE_RATE);
 
         let config = borrow_global_mut<Config>(NFT_MARKET_ADDRESS);
@@ -55,7 +55,7 @@ module NFTMarket {
     }
 
     // get fee
-    public fun get_fee_config(amount: u128): (u128, u128) acquires Config {
+    public fun get_fee(amount: u128): (u128, u128) acquires Config {
         let config = borrow_global<Config>(NFT_MARKET_ADDRESS);
         (amount * config.creator_fee, amount * config.platform_fee)
     }
