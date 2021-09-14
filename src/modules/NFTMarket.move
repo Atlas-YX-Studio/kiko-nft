@@ -504,7 +504,7 @@ module NFTMarket {
     }
 
     //NFT repurchase
-    public fun nft_buy_back<NFTMeta: store, NFTBody: store, PayToken: store>(sender: &signer, id: u64, amount: u128) acquires NFTBuyBack {
+    public fun nft_buy_back<NFTMeta: store + drop, NFTBody: store, PayToken: store>(sender: &signer, id: u64, amount: u128) acquires NFTBuyBack {
 
         let sender_address = Signer::address_of(sender);
         assert(sender_address == NFT_MARKET_ADDRESS, Errors::invalid_argument(ID_NOT_EXIST));

@@ -6,11 +6,11 @@ script {
     use 0x1::Account;
     use 0x1::Debug;
     use 0x1::STC;
-    use 0x222::NFTMarket2;
+    use 0x222::NFTMarket;
     // use 0x111::KikoCat01;
 
     fun swap_exact_token_for_token(sender: signer) {
-        let addr = NFTMarket2::test(&sender);
+        let addr = NFTMarket::test(&sender);
         Debug::print<address>(&addr);
         // NFTMarket::nft_buy_back<KikoCat01::KikoCatMeta, KikoCat01::KikoCatBody, STC::STC>(&sender, 12u64, 12u128);
 
