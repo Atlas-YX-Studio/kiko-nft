@@ -175,6 +175,7 @@ module KikoCat01 {
         while (i < 8) {
             let tmp = (Vector::pop_back<u8>(&mut hash) as u128);
             k = (tmp << (i * 8) as u64) + k;
+            i = i + 1;
         };
         let idx = k % count_of(sender_address);
         // get a nft
