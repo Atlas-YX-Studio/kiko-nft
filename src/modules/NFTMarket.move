@@ -499,15 +499,23 @@ module NFTMarket {
         buyer: address,
     }
 
-    public fun test(sender: &signer): address {
-        return Signer::address_of(sender)
+    public fun init_buy_back_list<NFTMeta: store + drop, NFTBody: store, PayToken: store>(sender: &signer) {
+        let sender_address = Signer::address_of(sender);
+        assert(sender_address == NFT_MARKET_ADDRESS, Errors::requires_role(PERMISSION_DENIED));
+        
+        if (!exists<NFTBuyBack<NFTMeta, NFTBody, PayToken>>(Signer::address_of(sender))) {
+            move_to(sender, NFTBuyBack<NFTMeta, NFTBody, PayToken> {
+                items: Vector::empty(),
+                sell_events: Event::new_event_handle<NFTBuyBackSellEvent<NFTMeta>>(sender),
+            });
+        }
     }
 
     //NFT repurchase
     public fun nft_buy_back<NFTMeta: store + drop, NFTBody: store, PayToken: store>(sender: &signer, id: u64, amount: u128) acquires NFTBuyBack {
 
         let sender_address = Signer::address_of(sender);
-        assert(sender_address == NFT_MARKET_ADDRESS, Errors::invalid_argument(ID_NOT_EXIST));
+        assert(sender_address == NFT_MARKET_ADDRESS, Errors::requires_role(PERMISSION_DENIED));
         let buyBackList =  borrow_global_mut<NFTBuyBack<NFTMeta, NFTBody, PayToken>>(sender_address);
 
         let pay_tokens = Account::withdraw<PayToken>(sender, amount);
@@ -525,6 +533,17 @@ module NFTMarket {
 
         let buyBackList = borrow_global_mut<NFTBuyBack<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
         let NFTBuyBackInfo {id: _, pay_tokens: payTokens} = pop_ntf_buy_back_info_by_id<NFTMeta, NFTBody, PayToken>(&mut buyBackList.items, id);
+
+        //send NFTBuyBackSellEvent event
+        Event::emit_event<NFTBuyBackSellEvent<NFTMeta>>(&mut buyBackList.sell_events,
+            NFTBuyBackSellEvent {
+                seller: sender_address,
+                id,
+                pay_token_code: Token::token_code<PayToken>(),
+                final_price: Token::value<PayToken>(& payTokens),
+                buyer: NFT_MARKET_ADDRESS,
+            },
+        );
 
         Account::deposit_to_self(sender, payTokens);
         NFTGallery::transfer<NFTMeta, NFTBody>(sender, id, NFT_MARKET_ADDRESS);
