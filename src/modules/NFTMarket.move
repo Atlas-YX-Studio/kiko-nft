@@ -214,7 +214,7 @@ module NFTMarket {
     }
 
     // 盲盒接受报价
-    public fun box_accept_bid(buyer: &signer, id: u128, offer_price: u128) acquires BoxSelling{
+    public fun box_accept_bid<BoxToken: store, PayToken: store>(buyer: &signer, id: u128, offer_price: u128) acquires BoxSelling{
 
         assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), Errors::invalid_argument(BOX_SELLING_NOT_EXIST));
 
