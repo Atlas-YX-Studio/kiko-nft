@@ -478,7 +478,7 @@ module NFTMarket {
 
     // ******************** Platform Buyback ********************
     // NFT buy back list
-    struct NFTBuyBack<NFTMeta: store, NFTBody: store, PayToken: store> has key, store {
+    struct NFTBuyBack<NFTMeta: store + drop, NFTBody: store, PayToken: store> has key, store {
         // nft buying list
         items: vector<NFTBuyBackInfo<NFTMeta, NFTBody, PayToken>>,
         sell_events: Event::EventHandle<NFTBuyBackSellEvent<NFTMeta>>,
@@ -491,7 +491,7 @@ module NFTMarket {
     }
 
     // NFT repurchase sale event
-    struct NFTBuyBackSellEvent<NFTMeta: store> has drop, store {
+    struct NFTBuyBackSellEvent<NFTMeta: store + drop> has drop, store {
         seller: address,
         id: u64,
         pay_token_code: Token::TokenCode,
