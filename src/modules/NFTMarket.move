@@ -132,7 +132,7 @@ module NFTMarket {
     }
 
     // ******************** Box Transaction ********************
-    // 盲盒出售列表
+    // box sell listing
     struct BoxSelling<BoxToken: store, PayToken: store> has key, store {
         // selling list
         items: vector<BoxSellInfo<BoxToken, PayToken>>,
@@ -141,7 +141,7 @@ module NFTMarket {
         bid_events: Event::EventHandle<BoxBidEvent>,
     }
 
-    // 盲盒商品信息，用于封装盲盒token
+    // box sell info
     struct BoxSellInfo<BoxToken: store, PayToken: store> has store, drop, key {
         id: u128,
         seller: address,
@@ -155,7 +155,7 @@ module NFTMarket {
         bider: address,
     }
 
-    // 盲盒出价事件
+    // box offer price event
     struct BoxBidEvent has drop, store {
         // seller address
         seller: address,
@@ -169,7 +169,7 @@ module NFTMarket {
         bid_price: u128,
     }
 
-    // 盲盒卖出事件
+    // box sell event
     struct BoxSellEvent has drop, store {
         // seller address
         seller: address,
@@ -185,8 +185,8 @@ module NFTMarket {
         buyer: address,
     }
 
-    // 盲盒出售
-    public fun box_sell<BoxToken: store, PayToken: store>(seller: &signer, sell_price: u128) acquires BoxSelling{
+    // box sell
+    public fun box_sell<BoxToken: store, PayToken: store>(seller: &signer, sell_price: u128) acquires BoxSelling {
 
         assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), Errors::invalid_argument(BOX_SELLING_NOT_EXIST));
 
@@ -196,16 +196,14 @@ module NFTMarket {
 
         box_sellings.last_id = box_sellings.last_id + 1;
 
-        let withdraw_box_token = Token::withdraw<BoxToken>(&seller, 1);
+        let withdraw_box_token = Token::withdraw<BoxToken>(seller, 1);
 
-        let box_sell_info = Account::withdraw<BoxToken, PayToken>(seller_address, 1);
         let new_box = BoxSellInfo<BoxToken, PayToken> {
             id: box_sellings.last_id,
             seller: seller_address,
             box_tokens: withdraw_box_token,
             selling_price: sell_price,
-            //fixme  传值 or 不传
-            bid_tokens: Token::Token<PayToken>(),
+            bid_tokens: Token::zero<PayToken>(),
             bider: @0x1,
         };
 
@@ -213,8 +211,8 @@ module NFTMarket {
 
     }
 
-    // 盲盒接受报价
-    public fun box_accept_bid<BoxToken: store, PayToken: store>(buyer: &signer, id: u128, offer_price: u128) acquires BoxSelling{
+    // box accept offer price
+    public fun box_accept_bid<BoxToken: store, PayToken: store>(seller: &signer, id: u128) acquires BoxSelling {
 
         assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), Errors::invalid_argument(BOX_SELLING_NOT_EXIST));
 
@@ -222,7 +220,7 @@ module NFTMarket {
         let len = Vector::length(&box_sellings.items);
         assert(len > 0, Errors::invalid_argument(BOX_SELLING_IS_EMPTY));
 
-        let buyer_address = Signer::address_of(buyer);
+        let seller_address = Signer::address_of(seller);
 
         let box_sell_info: &mut BoxSellInfo<BoxToken, PayToken>;
         let k = 0;
@@ -234,11 +232,14 @@ module NFTMarket {
             };
             k = k + 1;
         };
+        let buyer_address = box_sell_info.bider;
 
-        let withdraw_buy_box_token = Token::withdraw<PayToken>(buyer, offer_price);
-        Token::deposit(&mut box_sell_info.bid_tokens, withdraw_buy_box_token);
+        let withdraw_box_token = Token::withdraw<BoxToken>(&box_sell_info.box_tokens, 1);
+        Account::deposit(buyer_address, withdraw_box_token);
 
-        box_sell_info.bider = buyer_address;
+        let bid_amount = Token::value<PayToken>(&box_sell_info.bid_tokens);
+        let withdraw_bid_token = Token::withdraw<PayToken>(&box_sell_info.bid_tokens, bid_amount);
+        Account::deposit(seller_address, withdraw_bid_token);
 
         let remove_box_sell_info = Vector::remove<BoxSellInfo<BoxToken, PayToken>>(&mut &box_sellings.items, k);
 
@@ -255,11 +256,10 @@ module NFTMarket {
             &box_sellings.bid_events,
             BoxBidEvent{
                 seller: box_sell_info.seller,
-                // fixme
-                box_token_code: Token::TokenCode,
-                pay_token_code: Token::TokenCode,
+                box_token_code: Token::token_code<BoxToken>(),
+                pay_token_code: Token::token_code<PayToken>(),
                 selling_price: box_sell_info.selling_price,
-                bider: buyer_address,
+                bider: seller_address,
                 bid_price: offer_price,
             }
         );
@@ -267,10 +267,9 @@ module NFTMarket {
             &box_sellings.sell_events,
             BoxSellEvent{
                 seller: box_sell_info.seller,
-                // fixme
-                box_token_code: box_sell_info.box_tokens,
-                pay_token_code: box_sell_info.bid_tokens,
-                quantity: 1,
+                box_token_code: Token::token_code<BoxToken>(),
+                pay_token_code: Token::token_code<PayToken>(),
+                quantity: 1u128,
                 selling_price: box_sell_info.selling_price,
                 final_price: offer_price,
                 buyer: buyer_address,
@@ -279,7 +278,7 @@ module NFTMarket {
 
     }
 
-    // 盲盒出价
+    // box offer price
     public fun box_bid<BoxToken: store, PayToken: store>(buyer: &signer, id: u128, offer_price: u128) acquires BoxSelling{
 
         assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), Errors::invalid_argument(BOX_SELLING_NOT_EXIST));
@@ -325,9 +324,8 @@ module NFTMarket {
                 &box_sellings.bid_events,
                 BoxBidEvent{
                     seller: box_sell_info.seller,
-                    // fixme
-                    box_token_code: Token::TokenCode,
-                    pay_token_code: Token::TokenCode,
+                    box_token_code: Token::token_code<BoxToken>(),
+                    pay_token_code: Token::token_code<PayToken>(),
                     selling_price: box_sell_info.selling_price,
                     bider: buyer_address,
                     bid_price: offer_price,
@@ -338,7 +336,7 @@ module NFTMarket {
 
     }
 
-    // 盲盒购买
+    // box buy
     public fun box_buy<BoxToken: store, PayToken: store>(buyer: &signer, id: u128) acquires BoxSelling{
 
         assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), Errors::invalid_argument(BOX_SELLING_NOT_EXIST));
@@ -359,6 +357,7 @@ module NFTMarket {
             };
             k = k + 1;
         };
+        let seller_address = box_sell_info.seller;
 
         let bid_price = Token::value<PayToken>(&box_sell_info.bid_tokens);
         //已经有报价
@@ -368,33 +367,31 @@ module NFTMarket {
             Account::deposit<PayToken>(&box_sell_info.bider, withdraw_bid_token);
         };
 
-        let withdraw_buy_box_token = Token::withdraw<PayToken>(buyer, offer_price);
-        Token::deposit(&mut box_sell_info.bid_tokens, withdraw_buy_box_token);
+        let withdraw_box_token = Token::withdraw<BoxToken>(&box_sell_info.box_tokens, 1);
+        Account::deposit(buyer_address, withdraw_box_token);
 
-        box_sell_info.bider = buyer_address;
+        let withdraw_buy_box_token = Token::withdraw<PayToken>(buyer, offer_price);
+        Account::deposit(seller_address, withdraw_buy_box_token);
+
+//        box_sell_info.bider = buyer_address;
 
         let remove_box_sell_info = Vector::remove<BoxSellInfo<BoxToken, PayToken>>(&mut &box_sellings.items, k);
 
         let BoxSellInfo<BoxToken, PayToken>  {
-        id:_,
-        seller: _,
-        // box tokens for selling
-        box_tokens,
-        // selling price
-        selling_price: _,
-        // top price bid tokens
-        bid_tokens,
-        // buyer address
-        bider: _,
+            id:_,
+            seller: _,
+            box_tokens,
+            selling_price: _,
+            bid_tokens,
+            bider: _,
         } = remove_box_sell_info;
 
         Event::emit_event(
             &box_sellings.bid_events,
             BoxBidEvent{
                 seller: box_sell_info.seller,
-                // fixme
-                box_token_code: Token::TokenCode,
-                pay_token_code: Token::TokenCode,
+                box_token_code: Token::token_code<BoxToken>(),
+                pay_token_code: Token::token_code<PayToken>(),
                 selling_price: box_sell_info.selling_price,
                 bider: buyer_address,
                 bid_price: box_sell_info.selling_price,
@@ -404,9 +401,8 @@ module NFTMarket {
             &box_sellings.sell_events,
             BoxSellEvent{
                 seller: box_sell_info.seller,
-                // fixme
-                box_token_code: box_sell_info.box_tokens,
-                pay_token_code: box_sell_info.bid_tokens,
+                box_token_code: Token::token_code<BoxToken>(),
+                pay_token_code: Token::token_code<PayToken>(),
                 quantity: 1,
                 selling_price: box_sell_info.selling_price,
                 final_price: selling_price,
