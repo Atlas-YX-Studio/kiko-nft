@@ -344,16 +344,16 @@ module NFTMarket {
         };
 
         if(offer_price >= box_sell_info.selling_price){
-            //购买
+            //buy
             box_buy(buyer, id);
         } else {
             let bid_price = Token::value<PayToken>(&box_sell_info.bid_tokens);
-            //已经有报价
+            //There is already a quotation
             if(bid_price > 0u128){
-                //最新的报价小于等于之前的最高报价
+                //The latest quotation is less than or equal to the previous highest quotation
                 assert(offer_price > bid_price, Errors::invalid_argument(BOX_SELLING_PRICE_SMALL));
 
-                //最新的报价大于之前的最高报价，对之前的用户进行返还
+                //If the latest quotation is greater than the previous highest quotation, the previous users will be returned
                 let withdraw_bid_token = Token::withdraw<PayToken>(&box_sell_info.bid_tokens, bid_price);
                 Account::deposit<PayToken>(&box_sell_info.bider, withdraw_bid_token);
             };
@@ -403,9 +403,9 @@ module NFTMarket {
         let seller_address = box_sell_info.seller;
 
         let bid_price = Token::value<PayToken>(&box_sell_info.bid_tokens);
-        //已经有报价
+        //There is already a quotation
         if(bid_price > 0u128){
-            //最新的报价大于之前的最高报价，对之前的用户进行返还
+            //If the latest quotation is greater than the previous highest quotation, the previous users will be returned
             let withdraw_bid_token = Token::withdraw<PayToken>(&box_sell_info.bid_tokens, bid_price);
             Account::deposit<PayToken>(&box_sell_info.bider, withdraw_bid_token);
         };
