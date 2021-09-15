@@ -346,7 +346,7 @@ module NFTMarket {
 
         if(offer_price >= box_sell_info.selling_price){
             //buy
-//            box_buy(buyer, id);
+            box_buy<BoxToken, PayToken>(buyer, id);
         } else {
             let bid_price = Token::value<PayToken>(&box_sell_info.bid_tokens);
             //There is already a quotation
