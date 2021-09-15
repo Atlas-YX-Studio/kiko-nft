@@ -141,16 +141,16 @@ module KikoCat01 {
     // ******************** NFT public function ********************
 
     // init nft and box
-    public fun init(sender: &signer) {
-        assert(Signer::address_of(sender) == NFT_ADDRESS, PERMISSION_DENIED);
-        init_nft(sender);
-        init_box(sender);
-        init_gallery(sender);
-        NFTGallery::accept<KikoCatMeta, KikoCatBody>(sender);
+    public(script) fun init(sender: signer) {
+        assert(Signer::address_of(&sender) == NFT_ADDRESS, PERMISSION_DENIED);
+        init_nft(&sender);
+        init_box(&sender);
+        init_gallery(&sender);
+        NFTGallery::accept<KikoCatMeta, KikoCatBody>(&sender);
     }
 
     // mint NFT and box
-    public fun mint(sender: &signer,
+    public(script) fun mint(sender: signer,
                     name: vector<u8>,
                     image: vector<u8>,
                     description: vector<u8>,
@@ -158,16 +158,16 @@ module KikoCat01 {
                     breed: vector<u8>,
                     decorate: vector<u8>,
     ) acquires KikoCatNFTCapability, KikoCatBoxCapability, KikoCatGallery {
-        let sender_address = Signer::address_of(sender);
+        let sender_address = Signer::address_of(&sender);
         assert(sender_address == NFT_ADDRESS, PERMISSION_DENIED);
-        mint_nft(sender, name, image, description, background, breed, decorate);
-        mint_box(sender, 1 * SCALING_FACTOR);
+        mint_nft(&sender, name, image, description, background, breed, decorate);
+        mint_box(&sender, 1 * SCALING_FACTOR);
     }
 
     // open box and get a random NFT
-    public fun open_box(sender: &signer)
+    public(script) fun open_box(sender: signer)
     acquires KikoCatGallery {
-        let sender_address = Signer::address_of(sender);
+        let sender_address = Signer::address_of(&sender);
         // get hash last 64 bit and mod nft_size
         let hash = Block::get_parent_hash();
         let k = 0u64;
@@ -180,8 +180,8 @@ module KikoCat01 {
         let idx = k % count_of(sender_address);
         // get a nft
         let nft = withdraw_by_idx(sender_address, idx);
-        NFTGallery::accept<KikoCatMeta, KikoCatBody>(sender);
-        NFTGallery::deposit<KikoCatMeta, KikoCatBody>(sender, nft);
+        NFTGallery::accept<KikoCatMeta, KikoCatBody>(&sender);
+        NFTGallery::deposit<KikoCatMeta, KikoCatBody>(&sender, nft);
     }
 }
 }

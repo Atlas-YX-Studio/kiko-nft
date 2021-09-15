@@ -3,10 +3,10 @@
 //! sender: kiko
 address kiko = {{kiko}};
 script {
-    use 0x333::NFTScripts;
+    use 0x111::KikoCat01;
 
     fun init(sender: signer) {
-        NFTScripts::init_nft(sender);
+        KikoCat01::init(sender);
     }
 }
 // check: EXECUTED
@@ -15,10 +15,10 @@ script {
 //! sender: kiko
 address kiko = {{kiko}};
 script {
-    use 0x333::NFTScripts;
+    use 0x111::KikoCat01;
 
     fun init(sender: signer) {
-        NFTScripts::mint_nft(
+        KikoCat01::mint(
             sender,
             b"kiko cat",
             b"abcdefg",
@@ -35,10 +35,10 @@ script {
 //! sender: kiko
 address kiko = {{kiko}};
 script {
-    use 0x333::NFTScripts;
+    use 0x111::KikoCat01;
 
     fun init(sender: signer) {
-        NFTScripts::open_box(sender);
+        KikoCat01::open_box(sender);
     }
 }
 // check: EXECUTED
