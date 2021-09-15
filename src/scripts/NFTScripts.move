@@ -66,5 +66,38 @@ module NFTScripts {
         NFTMarket::nft_buy<NFTMeta,NFTBody,PayToken>(account,id);
     }
 
+    //box sell
+    public(script) fun box_sell<BoxToken: store, PayToken: store>(
+        seller: &signer,
+        sell_price: u128
+    ) {
+        NFTMarket::box_sell<BoxToken, PayToken>(seller, sell_price);
+    }
+
+    //box accept offer price
+    public(script) fun box_accept_bid<BoxToken: store, PayToken: store>(
+        seller: &signer,
+        id: u128
+    ){
+        NFTMarket::box_accept_bid<BoxToken, PayToken>(seller, id);
+    }
+
+    //box offer price
+    public(script) fun box_bid<BoxToken: store, PayToken: store>(
+        buyer: &signer,
+        id: u128,
+        offer_price: u128
+    ){
+        NFTMarket::box_bid<BoxToken, PayToken>(buyer, id, offer_price);
+    }
+
+    //box buy
+    public(script) fun box_buy<BoxToken: store, PayToken: store>(
+        buyer: &signer,
+        id: u128
+    ){
+        NFTMarket::box_buy<BoxToken, PayToken>(buyer, id);
+    }
+
 }
 }
