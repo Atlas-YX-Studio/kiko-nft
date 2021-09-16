@@ -138,6 +138,12 @@ module KikoCat01 {
         Account::deposit_to_self(sender, token);
     }
 
+    fun burn_box(token: Token::Token<KikoCatBox>)
+    acquires KikoCatBoxCapability{
+        let cap = borrow_global<KikoCatBoxCapability>(NFT_ADDRESS);
+        Token::burn_with_capability(&cap.burn, token);
+    }
+
     // ******************** NFT public function ********************
 
     // init nft and box
@@ -166,7 +172,9 @@ module KikoCat01 {
 
     // open box and get a random NFT
     public(script) fun open_box(sender: signer)
-    acquires KikoCatGallery {
+    acquires KikoCatBoxCapability, KikoCatGallery {
+        let box_token = Account::withdraw<KikoCatBox>(&sender, 1 * SCALING_FACTOR);
+        burn_box(box_token);
         let sender_address = Signer::address_of(&sender);
         // get hash last 64 bit and mod nft_size
         let hash = Block::get_parent_hash();
