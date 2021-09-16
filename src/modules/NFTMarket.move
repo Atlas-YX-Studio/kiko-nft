@@ -725,7 +725,7 @@ module NFTMarket {
         buyer: address,
     }
 
-    public fun init_buy_back_list<NFTMeta: store + drop, NFTBody: store, PayToken: store>(sender: &signer) {
+    public fun init_buy_back_list<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(sender: &signer) {
         let sender_address = Signer::address_of(sender);
         assert(sender_address == NFT_MARKET_ADDRESS, Errors::requires_role(PERMISSION_DENIED));
         
@@ -734,7 +734,10 @@ module NFTMarket {
                 items: Vector::empty(),
                 sell_events: Event::new_event_handle<NFTBuyBackSellEvent<NFTMeta>>(sender),
             });
-        }
+        };
+        if (!NFTGallery::is_accept<NFTMeta, NFTBody>(sender_address)) {
+            NFTGallery::accept<NFTMeta, NFTBody>(sender);
+        };
     }
 
     //NFT repurchase
