@@ -14,8 +14,6 @@ module NFTMarket {
 
     const NFT_MARKET_ADDRESS: address = @0x222;
 
-    const RESULT: u128 = 300000000000000000000000000000000000000;
-
     //error
     const PERMISSION_DENIED: u64 = 200001;
     const OFFERING_NOT_EXISTS: u64 = 200002;
@@ -293,7 +291,7 @@ module NFTMarket {
                 box_token_code: Token::token_code<BoxToken>(),
                 pay_token_code: Token::token_code<PayToken>(),
                 selling_price: box_sell_info.selling_price,
-                bider: seller_address,
+                bider: box_sell_info.bider,
                 bid_price: bid_amount,
             }
         );
@@ -421,7 +419,6 @@ module NFTMarket {
         Account::deposit(seller_address, withdraw_buy_box_token);
 
 //        box_sell_info.bider = buyer_address;
-
 
         Event::emit_event(
             &mut box_sellings.bid_events,
@@ -734,7 +731,7 @@ module NFTMarket {
         buyer: address,
     }
 
-    public fun init_buy_back_list<NFTMeta: store + drop, NFTBody: store, PayToken: store>(sender: &signer) {
+    public fun init_buy_back_list<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(sender: &signer) {
         let sender_address = Signer::address_of(sender);
         assert(sender_address == NFT_MARKET_ADDRESS, PERMISSION_DENIED);
         
@@ -743,7 +740,10 @@ module NFTMarket {
                 items: Vector::empty(),
                 sell_events: Event::new_event_handle<NFTBuyBackSellEvent<NFTMeta>>(sender),
             });
-        }
+        };
+        if (!NFTGallery::is_accept<NFTMeta, NFTBody>(sender_address)) {
+            NFTGallery::accept<NFTMeta, NFTBody>(sender);
+        };
     }
 
     //NFT repurchase

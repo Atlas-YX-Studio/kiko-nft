@@ -54,35 +54,47 @@ module NFTScripts {
 
     //box sell
     public(script) fun box_sell<BoxToken: store, PayToken: store>(
-        seller: &signer,
+        seller: signer,
         sell_price: u128
     ) {
-        NFTMarket::box_sell<BoxToken, PayToken>(seller, sell_price);
+        NFTMarket::box_sell<BoxToken, PayToken>(&seller, sell_price);
     }
 
     //box accept offer price
     public(script) fun box_accept_bid<BoxToken: store, PayToken: store>(
-        seller: &signer,
+        seller: signer,
         id: u128
     ){
-        NFTMarket::box_accept_bid<BoxToken, PayToken>(seller, id);
+        NFTMarket::box_accept_bid<BoxToken, PayToken>(&seller, id);
     }
 
     //box offer price
     public(script) fun box_bid<BoxToken: store, PayToken: store>(
-        buyer: &signer,
+        buyer: signer,
         id: u128,
         offer_price: u128
     ){
-        NFTMarket::box_bid<BoxToken, PayToken>(buyer, id, offer_price);
+        NFTMarket::box_bid<BoxToken, PayToken>(&buyer, id, offer_price);
     }
 
     //box buy
     public(script) fun box_buy<BoxToken: store, PayToken: store>(
-        buyer: &signer,
+        buyer: signer,
         id: u128
     ){
-        NFTMarket::box_buy<BoxToken, PayToken>(buyer, id);
+        NFTMarket::box_buy<BoxToken, PayToken>(&buyer, id);
+    }
+
+    public(script) fun init_buy_back_list<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(sender: signer) {
+        NFTMarket::init_buy_back_list<NFTMeta, NFTBody, PayToken>(&sender);
+    }
+
+    public(script) fun nft_buy_back<NFTMeta: store + drop, NFTBody: store, PayToken: store>(sender: signer, id: u64, amount: u128) {
+        NFTMarket::nft_buy_back<NFTMeta, NFTBody, PayToken>(&sender, id, amount);
+    }
+
+    public(script) fun nft_buy_back_sell<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(sender: signer, id: u64) {
+        NFTMarket::nft_buy_back_sell<NFTMeta, NFTBody, PayToken>(&sender, id);
     }
 
 }
