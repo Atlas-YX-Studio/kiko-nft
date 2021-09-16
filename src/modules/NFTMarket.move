@@ -99,12 +99,16 @@ module NFTMarket {
     }
 
     // init market resource for different PayToken
-    public fun init_market<NFTMeta: store + drop, NFTBody: store, BoxToken: store, PayToken: store>(sender: &signer) {
+    public fun init_market<NFTMeta: store + drop, NFTBody: store, BoxToken: store, PayToken: store>(
+        sender: &signer,
+        creator: address,
+    ) {
         let sender_address = Signer::address_of(sender);
         assert(sender_address == NFT_MARKET_ADDRESS, PERMISSION_DENIED);
         if (!exists<BoxSelling<BoxToken, PayToken>>(sender_address)) {
             move_to(sender, BoxSelling<BoxToken, PayToken> {
                 items: Vector::empty(),
+                creator: creator,
                 last_id: 0u128,
                 bid_events: Event::new_event_handle<BoxBidEvent>(sender),
                 sell_events: Event::new_event_handle<BoxSellEvent>(sender),
@@ -125,6 +129,7 @@ module NFTMarket {
         box_amount: u128,
         selling_price: u128,
         selling_time: u64,
+        creator: address,
     ) acquires BoxOffering {
         let sender_address = Signer::address_of(sender);
         assert(sender_address == NFT_MARKET_ADDRESS, PERMISSION_DENIED);
@@ -144,7 +149,7 @@ module NFTMarket {
         let box_tokens = Account::withdraw<BoxToken>(sender, box_amount);
         Token::deposit<BoxToken>(&mut offering.box_tokens, box_tokens);
         // init other market
-        init_market<NFTMeta, NFTBody, BoxToken, PayToken>(sender);
+        init_market<NFTMeta, NFTBody, BoxToken, PayToken>(sender, creator);
     }
 
     // buy box from offering
@@ -179,6 +184,7 @@ module NFTMarket {
     struct BoxSelling<BoxToken: store, PayToken: store> has key, store {
         // selling list
         items: vector<BoxSellInfo<BoxToken, PayToken>>,
+        creator: address,
         last_id: u128,
         sell_events: Event::EventHandle<BoxSellEvent>,
         bid_events: Event::EventHandle<BoxBidEvent>,

@@ -71,7 +71,7 @@ script {
     use 0x111::KikoCat01;
 
     fun init_box(sender: signer) {
-        NFTMarket::init_market<KikoCat01::KikoCatMeta, KikoCat01::KikoCatBody, ETH, USDT>(&sender);
+        NFTMarket::init_market<KikoCat01::KikoCatMeta, KikoCat01::KikoCatBody, ETH, USDT>(&sender, @0x111);
     }
 }
 // check: "Keep(EXECUTED)"

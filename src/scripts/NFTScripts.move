@@ -12,10 +12,31 @@ module NFTScripts {
         NFTMarket::init_config(&sender,creator_fee,platform_fee);
     }
 
-    public(script) fun init_market<NFTMeta: store + drop, NFTBody: store, BoxToken: store, PayToken: store>(
-        sender: signer
+    public(script) fun box_initial_offering<NFTMeta: store + drop, NFTBody: store, BoxToken: store, PayToken: store>(
+        sender: signer,
+        box_amount: u128,
+        selling_price: u128,
+        selling_time: u64,
+        creator: address,
     ) {
-        NFTMarket::init_market<NFTMeta,NFTBody,BoxToken,PayToken>(&sender);
+        NFTMarket::box_initial_offering<NFTMeta,NFTBody,BoxToken,PayToken>(
+            &sender,
+            box_amount,
+            selling_price,
+            selling_time,
+            creator,
+        );
+    }
+
+    public(script) fun init_market<NFTMeta: store + drop, NFTBody: store, BoxToken: store, PayToken: store>(
+        sender: signer,
+        creator: address,
+    ) {
+        NFTMarket::init_market<NFTMeta,NFTBody,BoxToken,PayToken>(&sender, creator);
+    }
+
+    public(script) fun box_buy_from_offering<BoxToken: store, PayToken: store>(sender: signer, quantity: u128) {
+        NFTMarket::box_buy_from_offering<BoxToken,PayToken>(sender, quantity);
     }
 
     // NFT sell

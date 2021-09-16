@@ -63,7 +63,7 @@ script {
     use 0x333::NFTScripts;
     use 0x111::KikoCat01::{KikoCatMeta,KikoCatBody,KikoCatBox};
     fun init_config(sender: signer) {
-        NFTScripts::init_market<KikoCatMeta, KikoCatBody, KikoCatBox, STC>(sender);
+        NFTScripts::init_market<KikoCatMeta, KikoCatBody, KikoCatBox, STC>(sender, @0x111);
     }
 }
 // check: EXECUTED
