@@ -262,7 +262,7 @@ module NFTMarket {
     }
 
     // box accept offer price
-    public fun box_accept_bid<BoxToken: store, PayToken: store>(seller: &signer, id: u128) acquires BoxSelling {
+    public fun box_accept_bid<BoxToken: store, PayToken: store>(seller: &signer, id: u128) acquires BoxSelling, Config {
 
         assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
 
@@ -287,7 +287,17 @@ module NFTMarket {
         Account::deposit(box_sell_info.bider, withdraw_box_token);
 
         let bid_amount = Token::value<PayToken>(&box_sell_info.bid_tokens);
-        let withdraw_bid_token = Token::withdraw<PayToken>(&mut box_sell_info.bid_tokens, bid_amount);
+
+        let (creator_fee,platform_fee) = get_fee(bid_amount);
+
+        let creator_fee_token = Token::withdraw<PayToken>(&mut box_sell_info.bid_tokens, creator_fee);
+        Account::deposit<PayToken>(box_sellings.creator, creator_fee_token);
+
+        let platform_fee_token = Token::withdraw<PayToken>(&mut box_sell_info.bid_tokens, platform_fee);
+        Account::deposit<PayToken>(NFT_MARKET_ADDRESS, platform_fee_token);
+
+        let surplus_amount = bid_amount - creator_fee - creator_fee;
+        let withdraw_bid_token = Token::withdraw<PayToken>(&mut box_sell_info.bid_tokens, surplus_amount);
         Account::deposit(seller_address, withdraw_bid_token);
 
         Event::emit_event(
@@ -329,7 +339,7 @@ module NFTMarket {
     }
 
     // box offer price
-    public fun box_bid<BoxToken: store, PayToken: store>(buyer: &signer, id: u128, offer_price: u128) acquires BoxSelling{
+    public fun box_bid<BoxToken: store, PayToken: store>(buyer: &signer, id: u128, offer_price: u128) acquires BoxSelling, Config {
 
         assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
 
@@ -387,7 +397,7 @@ module NFTMarket {
     }
 
     // box buy
-    public fun box_buy<BoxToken: store, PayToken: store>(buyer: &signer, id: u128) acquires BoxSelling{
+    public fun box_buy<BoxToken: store, PayToken: store>(buyer: &signer, id: u128) acquires BoxSelling, Config {
 
         assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS),BOX_SELLING_NOT_EXIST);
 
@@ -421,7 +431,20 @@ module NFTMarket {
         let withdraw_box_token = Token::withdraw<BoxToken>(&mut box_sell_info.box_tokens, 1);
         Account::deposit(buyer_address, withdraw_box_token);
 
-        let withdraw_buy_box_token = Account::withdraw<PayToken>(buyer, sell_price);
+        0x1::Debug::print(&111111111u128);
+
+        let (creator_fee,platform_fee) = get_fee(sell_price);
+        0x1::Debug::print(&creator_fee);
+        0x1::Debug::print(&platform_fee);
+
+        let creator_fee_token = Token::withdraw<PayToken>(&mut box_sell_info.bid_tokens, creator_fee);
+        Account::deposit<PayToken>(box_sellings.creator, creator_fee_token);
+
+        let platform_fee_token = Token::withdraw<PayToken>(&mut box_sell_info.bid_tokens, platform_fee);
+        Account::deposit<PayToken>(NFT_MARKET_ADDRESS, platform_fee_token);
+
+        let surplus_amount = sell_price - creator_fee - creator_fee;
+        let withdraw_buy_box_token = Account::withdraw<PayToken>(buyer, surplus_amount);
         Account::deposit(seller_address, withdraw_buy_box_token);
 
 //        box_sell_info.bider = buyer_address;
