@@ -70,7 +70,7 @@ module NFTScripts {
         NFTMarket::box_buy<BoxToken, PayToken>(buyer, id);
     }
 
-    public(script) fun init_buy_back_list<NFTMeta: store + drop, NFTBody: store, PayToken: store>(sender: signer) {
+    public(script) fun init_buy_back_list<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(sender: signer) {
         NFTMarket::init_buy_back_list<NFTMeta, NFTBody, PayToken>(&sender);
     }
 
