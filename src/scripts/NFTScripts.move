@@ -36,7 +36,7 @@ module NFTScripts {
     }
 
     public(script) fun box_buy_from_offering<BoxToken: store, PayToken: store>(sender: signer, quantity: u128) {
-        NFTMarket::box_buy_from_offering<BoxToken,PayToken>(sender, quantity);
+        NFTMarket::box_buy_from_offering<BoxToken,PayToken>(&sender, quantity);
     }
 
     // NFT sell
