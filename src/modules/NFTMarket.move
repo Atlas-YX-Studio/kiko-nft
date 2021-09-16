@@ -276,9 +276,14 @@ module NFTMarket {
             assert(k < len,  BOX_SELLING_NOT_EXIST);
             box_sell_info = Vector::borrow_mut(&mut box_sellings.items, k);
         };
+        0x1::Debug::print(&k);
 
         let withdraw_box_token = Token::withdraw<BoxToken>(&mut box_sell_info.box_tokens, 1);
         Account::deposit(box_sell_info.bider, withdraw_box_token);
+
+        0x1::Debug::print(&78787878787878u128);
+        let balance2 = Account::balance<PayToken>(box_sell_info.bider);
+        0x1::Debug::print(&balance2);
 
         let bid_amount = Token::value<PayToken>(&box_sell_info.bid_tokens);
         let withdraw_bid_token = Token::withdraw<PayToken>(&mut box_sell_info.bid_tokens, bid_amount);
@@ -291,7 +296,7 @@ module NFTMarket {
                 box_token_code: Token::token_code<BoxToken>(),
                 pay_token_code: Token::token_code<PayToken>(),
                 selling_price: box_sell_info.selling_price,
-                bider: seller_address,
+                bider: box_sell_info.bider,
                 bid_price: bid_amount,
             }
         );
@@ -329,7 +334,10 @@ module NFTMarket {
 
         let box_sellings = borrow_global_mut<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
         let len = Vector::length(&box_sellings.items);
-        assert(len > 0, Errors::invalid_argument(BOX_SELLING_IS_EMPTY));
+        assert(len > 0, BOX_SELLING_IS_EMPTY);
+
+        0x1::Debug::print(&id);
+        0x1::Debug::print(&offer_price);
 
         let buyer_address = Signer::address_of(buyer);
 
@@ -343,24 +351,36 @@ module NFTMarket {
             assert(k < len,  BOX_SELLING_NOT_EXIST);
             box_sell_info = Vector::borrow_mut(&mut box_sellings.items, k);
         };
-
+        0x1::Debug::print(&222222222u128);
+        0x1::Debug::print(&box_sell_info.selling_price);
+        0x1::Debug::print(&box_sell_info.id);
+        0x1::Debug::print(&222222222u128);
         if(offer_price >= box_sell_info.selling_price){
+            0x1::Debug::print(&666666666u128);
             //buy
             box_buy<BoxToken, PayToken>(buyer, id);
         } else {
             let bid_price = Token::value<PayToken>(&box_sell_info.bid_tokens);
+            0x1::Debug::print(&bid_price);
+            0x1::Debug::print(&888888888u128);
             //There is already a quotation
             if(bid_price > 0u128){
                 //The latest quotation is less than or equal to the previous highest quotation
-                assert(offer_price > bid_price, Errors::invalid_argument(BOX_SELLING_PRICE_SMALL));
+                assert(offer_price > bid_price, BOX_SELLING_PRICE_SMALL);
 
                 //If the latest quotation is greater than the previous highest quotation, the previous users will be returned
                 let withdraw_bid_token = Token::withdraw<PayToken>(&mut box_sell_info.bid_tokens, bid_price);
                 Account::deposit<PayToken>(box_sell_info.bider, withdraw_bid_token);
             };
+            0x1::Debug::print(&23232323233u128);
 
             let withdraw_buy_box_token = Account::withdraw<PayToken>(buyer, offer_price);
             Token::deposit(&mut box_sell_info.bid_tokens, withdraw_buy_box_token);
+            0x1::Debug::print(&56565656565u128);
+
+            let balance2 = Account::balance<PayToken>(buyer_address);
+            0x1::Debug::print(&999999999u128);
+            0x1::Debug::print(&balance2);
 
             box_sell_info.bider = buyer_address;
 
@@ -387,7 +407,7 @@ module NFTMarket {
 
         let box_sellings = borrow_global_mut<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
         let len = Vector::length(&box_sellings.items);
-        assert(len > 0, Errors::invalid_argument(BOX_SELLING_IS_EMPTY));
+        assert(len > 0, BOX_SELLING_IS_EMPTY);
 
         let buyer_address = Signer::address_of(buyer);
 
@@ -404,6 +424,10 @@ module NFTMarket {
         let seller_address = box_sell_info.seller;
         let sell_price = box_sell_info.selling_price;
 
+        0x1::Debug::print(&len);
+        0x1::Debug::print(&k);
+        0x1::Debug::print(&sell_price);
+
         let bid_price = Token::value<PayToken>(&box_sell_info.bid_tokens);
         //There is already a quotation
         if(bid_price > 0u128){
@@ -419,7 +443,6 @@ module NFTMarket {
         Account::deposit(seller_address, withdraw_buy_box_token);
 
 //        box_sell_info.bider = buyer_address;
-
 
         Event::emit_event(
             &mut box_sellings.bid_events,
