@@ -2,7 +2,6 @@ address 0x222 {
 module NFTMarket {
 
     use 0x1::Event;
-    use 0x1::Errors;
     use 0x1::Account;
     use 0x1::Option::{Self, Option};
     use 0x1::Signer;
@@ -11,8 +10,11 @@ module NFTMarket {
     use 0x1::Timestamp;
     use 0x1::NFT::{Self, NFT};
     use 0x1::NFTGallery;
+//    use 0x1::Debug;
 
     const NFT_MARKET_ADDRESS: address = @0x222;
+
+    const RESULT: u128 = 300000000000000000000000000000000000000;
 
     //error
     const PERMISSION_DENIED: u64 = 200001;
@@ -60,7 +62,7 @@ module NFTMarket {
     // get fee
     public fun get_fee(amount: u128): (u128, u128) acquires Config {
         let config = borrow_global<Config>(NFT_MARKET_ADDRESS);
-        (amount * config.creator_fee, amount * config.platform_fee)
+        (amount * config.creator_fee / 1000, amount * config.platform_fee / 1000)
     }
 
     // ******************** Initial Offering ********************
@@ -329,7 +331,7 @@ module NFTMarket {
 
         let box_sellings = borrow_global_mut<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
         let len = Vector::length(&box_sellings.items);
-        assert(len > 0, Errors::invalid_argument(BOX_SELLING_IS_EMPTY));
+        assert(len > 0, BOX_SELLING_IS_EMPTY);
 
         let buyer_address = Signer::address_of(buyer);
 
@@ -352,7 +354,7 @@ module NFTMarket {
             //There is already a quotation
             if(bid_price > 0u128){
                 //The latest quotation is less than or equal to the previous highest quotation
-                assert(offer_price > bid_price, Errors::invalid_argument(BOX_SELLING_PRICE_SMALL));
+                assert(offer_price > bid_price, BOX_SELLING_PRICE_SMALL);
 
                 //If the latest quotation is greater than the previous highest quotation, the previous users will be returned
                 let withdraw_bid_token = Token::withdraw<PayToken>(&mut box_sell_info.bid_tokens, bid_price);
@@ -387,7 +389,7 @@ module NFTMarket {
 
         let box_sellings = borrow_global_mut<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
         let len = Vector::length(&box_sellings.items);
-        assert(len > 0, Errors::invalid_argument(BOX_SELLING_IS_EMPTY));
+        assert(len > 0, BOX_SELLING_IS_EMPTY);
 
         let buyer_address = Signer::address_of(buyer);
 
@@ -511,10 +513,11 @@ module NFTMarket {
     ) acquires NFTSelling {
         let nft_selling = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
         // NFTSelling exists
-        assert(exists<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), Errors::invalid_argument(OFFERING_NOT_EXISTS));
+        assert(exists<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), OFFERING_NOT_EXISTS);
         let owner_address = Signer::address_of(account);
         // Withdraw one NFT token from your account
         let option_nft = NFTGallery::withdraw<NFTMeta, NFTBody>(account, id);
+        assert(Option::is_some<NFT<NFTMeta, NFTBody>>(&option_nft), ID_NOT_EXIST);
         let nft_sell_info = NFTSellInfo<NFTMeta, NFTBody, PayToken> {
             seller: owner_address,
             nft: option_nft,
@@ -532,6 +535,7 @@ module NFTMarket {
         account: &signer,
         id: u64, price: u128
     ) acquires NFTSelling , Config {
+        assert(exists<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), OFFERING_NOT_EXISTS);
         let nft_token = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
         let nftSellInfo = find_ntf_sell_info_by_id<NFTMeta, NFTBody, PayToken>(&mut nft_token.items, id);
         //bider address
@@ -541,13 +545,15 @@ module NFTMarket {
         } else {
             // get bid token quantity
             let bid_tokens = Token::value(&nftSellInfo.bid_tokens);
+
             if (bid_tokens > 0) {
-                assert(price > bid_tokens, Errors::invalid_argument(BID_FAILED));
+                assert(price > bid_tokens, BID_FAILED);
                 // pool deduct token
                 let pool_tokens = Token::withdraw<PayToken>(&mut nftSellInfo.bid_tokens, bid_tokens);
                 // pay
                 Account::deposit<PayToken>(nftSellInfo.bider, pool_tokens);
             };
+
             // Deduct deduction from my account PayToken
             let me_tokens = Account::withdraw<PayToken>(account, price);
             // Go to the pool
@@ -639,7 +645,7 @@ module NFTMarket {
         let nft_token = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
         let selling_price = nft_sell_info.selling_price;
         let token_balance = Account::balance<PayToken>(user_address);
-        assert(token_balance >= selling_price, Errors::invalid_argument(INSUFFICIENT_BALANCE));
+        assert(token_balance >= selling_price, INSUFFICIENT_BALANCE);
         let nft = Option::extract(&mut nft_sell_info.nft);
 
         let (creator_fee,platform_fee) = get_fee(selling_price);
@@ -654,6 +660,9 @@ module NFTMarket {
         let surplus_amount = selling_price - creator_fee - creator_fee;
         let surplus_amount_token = Account::withdraw<PayToken>(account, surplus_amount);
         Account::deposit<PayToken>(nft_sell_info.seller, surplus_amount_token);
+
+//        let balance_stc = Account::balance<PayToken>(nft_sell_info.seller);
+//        Debug::print<u128>(&balance_stc);
 
         // accept
         NFTGallery::accept<NFTMeta, NFTBody>(account);
@@ -688,7 +697,7 @@ module NFTMarket {
         c: &mut vector<NFTSellInfo<NFTMeta, NFTBody, PayToken>>,
         id: u64): NFTSellInfo<NFTMeta, NFTBody, PayToken> {
         let len = Vector::length(c);
-        assert(len > 0, Errors::invalid_argument(ID_NOT_EXIST));
+        assert(len > 0, ID_NOT_EXIST);
         let i = len - 1;
         loop {
             // NFTSellInfo<NFTMeta, NFTBody, PayToken>
@@ -697,7 +706,7 @@ module NFTMarket {
             if (NFT::get_id(nft) == id) {
                 return Vector::remove(c, i)
             };
-            assert(i > 0, Errors::invalid_argument(ID_NOT_EXIST));
+            assert(i > 0, ID_NOT_EXIST);
             i = i - 1;
         }
     }
@@ -727,7 +736,7 @@ module NFTMarket {
 
     public fun init_buy_back_list<NFTMeta: store + drop, NFTBody: store, PayToken: store>(sender: &signer) {
         let sender_address = Signer::address_of(sender);
-        assert(sender_address == NFT_MARKET_ADDRESS, Errors::requires_role(PERMISSION_DENIED));
+        assert(sender_address == NFT_MARKET_ADDRESS, PERMISSION_DENIED);
         
         if (!exists<NFTBuyBack<NFTMeta, NFTBody, PayToken>>(Signer::address_of(sender))) {
             move_to(sender, NFTBuyBack<NFTMeta, NFTBody, PayToken> {
@@ -741,7 +750,7 @@ module NFTMarket {
     public fun nft_buy_back<NFTMeta: store + drop, NFTBody: store, PayToken: store>(sender: &signer, id: u64, amount: u128) acquires NFTBuyBack {
 
         let sender_address = Signer::address_of(sender);
-        assert(sender_address == NFT_MARKET_ADDRESS, Errors::requires_role(PERMISSION_DENIED));
+        assert(sender_address == NFT_MARKET_ADDRESS, PERMISSION_DENIED);
         let buyBackList =  borrow_global_mut<NFTBuyBack<NFTMeta, NFTBody, PayToken>>(sender_address);
 
         let pay_tokens = Account::withdraw<PayToken>(sender, amount);
@@ -755,7 +764,7 @@ module NFTMarket {
     // NFT repurchase and sale
     public fun nft_buy_back_sell<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(sender: &signer, id: u64) acquires NFTBuyBack {
         let sender_address = Signer::address_of(sender);
-        assert(NFTGallery::is_accept<NFTMeta, NFTBody>(sender_address), Errors::invalid_argument(ID_NOT_EXIST));
+        assert(NFTGallery::is_accept<NFTMeta, NFTBody>(sender_address), ID_NOT_EXIST);
 
         let buyBackList = borrow_global_mut<NFTBuyBack<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
         let NFTBuyBackInfo {id: _, pay_tokens: payTokens} = pop_ntf_buy_back_info_by_id<NFTMeta, NFTBody, PayToken>(&mut buyBackList.items, id);
@@ -778,7 +787,7 @@ module NFTMarket {
     fun pop_ntf_buy_back_info_by_id<NFTMeta: store, NFTBody: store, PayToken: store>(c: &mut vector<NFTBuyBackInfo<NFTMeta, NFTBody, PayToken>>, id: u64):
         NFTBuyBackInfo<NFTMeta, NFTBody, PayToken> {
         let len = Vector::length(c);
-        assert(len > 0, Errors::invalid_argument(ID_NOT_EXIST));
+        assert(len > 0, ID_NOT_EXIST);
         let nftBuyBackInfos = len - 1;
         loop {
             // NFTBuyBackInfo<NFTMeta, NFTBody, PayToken>
@@ -786,7 +795,7 @@ module NFTMarket {
             if (nftBuyBackInfo.id == id) {
                 return Vector::remove<NFTBuyBackInfo<NFTMeta, NFTBody, PayToken>>(c, nftBuyBackInfos)
             };
-            assert(nftBuyBackInfos > 0, Errors::invalid_argument(ID_NOT_EXIST));
+            assert(nftBuyBackInfos > 0, ID_NOT_EXIST);
             nftBuyBackInfos = nftBuyBackInfos - 1;
         }
     }
