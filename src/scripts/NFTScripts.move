@@ -3,38 +3,53 @@ module NFTScripts {
 
     use 0x222::NFTMarket;
 
+    // init
+    public(script) fun init_config(
+        sender: signer,
+        creator_fee: u128,
+        platform_fee: u128
+    ) {
+        NFTMarket::init_config(&sender,creator_fee,platform_fee);
+    }
+
+    public(script) fun init_market<NFTMeta: store + drop, NFTBody: store, BoxToken: store, PayToken: store>(
+        sender: signer
+    ) {
+        NFTMarket::init_market<NFTMeta,NFTBody,BoxToken,PayToken>(&sender);
+    }
+
     // NFT sell
     public(script) fun nft_sell<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(
-        account: &signer,
+        account: signer,
         id: u64,
         selling_price: u128
     ){
-        NFTMarket::nft_sell<NFTMeta,NFTBody,PayToken>(account,id,selling_price);
+        NFTMarket::nft_sell<NFTMeta,NFTBody,PayToken>(&account,id,selling_price);
     }
 
     // NFT bid
     public(script) fun nft_bid<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(
-        account: &signer,
+        account: signer,
         id: u64,
         price: u128
     ){
-        NFTMarket::nft_bid<NFTMeta,NFTBody,PayToken>(account,id,price);
+        NFTMarket::nft_bid<NFTMeta,NFTBody,PayToken>(&account,id,price);
     }
 
     // NFT accept bid
     public(script) fun nft_accept_bid<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(
-        account: &signer,
+        account: signer,
         id: u64
     ){
-        NFTMarket::nft_accept_bid<NFTMeta,NFTBody,PayToken>(account,id);
+        NFTMarket::nft_accept_bid<NFTMeta,NFTBody,PayToken>(&account,id);
     }
 
     // NFT buy
     public(script) fun nft_buy<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(
-        account: &signer,
+        account: signer,
         id: u64
     ){
-        NFTMarket::nft_buy<NFTMeta,NFTBody,PayToken>(account,id);
+        NFTMarket::nft_buy<NFTMeta,NFTBody,PayToken>(&account,id);
     }
 
     //box sell
