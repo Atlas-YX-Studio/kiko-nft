@@ -10,7 +10,6 @@ module NFTMarket {
     use 0x1::Timestamp;
     use 0x1::NFT::{Self, NFT};
     use 0x1::NFTGallery;
-//    use 0x1::Debug;
 
     const NFT_MARKET_ADDRESS: address = @0x222;
 
@@ -145,7 +144,7 @@ module NFTMarket {
         };
         let offering = borrow_global_mut<BoxOffering<BoxToken, PayToken>>(sender_address);
         // transfer box to offering pool
-        assert(Account::balance<PayToken>(sender_address) >= selling_price, INSUFFICIENT_BALANCE);
+        assert(Account::balance<BoxToken>(sender_address) >= box_amount, INSUFFICIENT_BALANCE);
         let box_tokens = Account::withdraw<BoxToken>(sender, box_amount);
         Token::deposit<BoxToken>(&mut offering.box_tokens, box_tokens);
         // init other market
