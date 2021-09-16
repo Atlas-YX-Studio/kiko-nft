@@ -1,6 +1,8 @@
 address 0x333 {
 module NFTScripts {
 
+    use 0x222::NFTMarket;
+
     // NFT sell
     public(script) fun nft_sell<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(
         account: &signer,

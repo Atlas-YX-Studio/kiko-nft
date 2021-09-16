@@ -3,10 +3,10 @@
 //! sender: kiko
 address kiko = {{kiko}};
 script {
-    use 0x333::NFTScripts;
+    use 0x111::KikoCat01;
 
     fun init(sender: signer) {
-        NFTScripts::init_nft(sender);
+        KikoCat01::init(sender);
     }
 }
 // check: EXECUTED
@@ -15,10 +15,10 @@ script {
 //! sender: kiko
 address kiko = {{kiko}};
 script {
-    use 0x333::NFTScripts;
+    use 0x111::KikoCat01;
 
     fun init(sender: signer) {
-        NFTScripts::mint_nft(
+        KikoCat01::mint(
             sender,
             b"kiko cat",
             b"abcdefg",
@@ -35,10 +35,26 @@ script {
 //! sender: kiko
 address kiko = {{kiko}};
 script {
-    use 0x333::NFTScripts;
+    use 0x111::KikoCat01;
 
     fun init(sender: signer) {
-        NFTScripts::open_box(sender);
+        KikoCat01::open_box(sender);
+    }
+}
+// check: EXECUTED
+
+
+//! new-transaction
+//! sender: kiko
+address kiko = {{kiko}};
+script {
+    use 0x1::STC::STC;
+    use 0x300::NFTScripts;
+    use 0x111::KikoCat01::{KikoCatMeta,KikoCatBody};
+
+    fun nft_sell(sender: signer) {
+        //Dummy::mint_token<ETH>(&sender, 1 * MULTIPLE);
+        NFTScripts::nft_sell<KikoCatMeta, KikoCatBody,STC>(sender, 0 ,1000000000);
     }
 }
 // check: EXECUTED
