@@ -135,6 +135,17 @@ script {
 //! sender: maket
 address maket = {{maket}};
 script {
+    use 0x333::NFTScripts;
+    fun update_config(sender: signer) {
+        NFTScripts::update_config(sender, 10 ,10);
+    }
+}
+// check: EXECUTED
+
+//! new-transaction
+//! sender: maket
+address maket = {{maket}};
+script {
     use 0x1::STC::STC;
     use 0x333::NFTScripts;
     use 0x111::KikoCat01::{KikoCatMeta,KikoCatBody,KikoCatBox};
