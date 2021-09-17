@@ -23,9 +23,13 @@ script {
             b"kiko cat",
             b"abcdefg",
             b"this is a cat",
-            b"red",
-            b"kaffe",
-            b"hat",
+            b"Red",
+            b"Gray",
+            b"Blue Sky",
+            b"Bored",
+            b"Banana",
+            b"Mask",
+            b"Glasses",
         );
     }
 }

@@ -23,9 +23,13 @@ script {
             b"kiko cat",
             b"abcdefg",
             b"this is a cat",
-            b"red",
-            b"kaffe",
-            b"hat",
+            b"Red",
+            b"Gray",
+            b"Blue Sky",
+            b"Bored",
+            b"Banana",
+            b"Mask",
+            b"Glasses",
         );
     }
 }
@@ -43,9 +47,13 @@ script {
             b"kiko cat",
             b"abcdefg",
             b"this is a cat",
-            b"red",
-            b"kaffe",
-            b"hat",
+            b"Red",
+            b"Gray",
+            b"Blue Sky",
+            b"Bored",
+            b"Banana",
+            b"Mask",
+            b"Glasses",
         );
     }
 }
@@ -87,7 +95,7 @@ script {
 
     fun transfer(sender: signer) {
 //        Debug::print<u128>(&Account::balance<KikoCatBox>(@kiko));
-        Account::pay_from<KikoCatBox>(&sender, @0x222, 1000000000);
+        Account::pay_from<KikoCatBox>(&sender, @0x222, 1);
     }
 }
 // check: EXECUTED
@@ -103,7 +111,7 @@ script {
     const DECIMAL: u128 = 1000000000;
 
     fun box_initial_offering(sender: signer) {
-        NFTScripts::box_initial_offering<KikoCatMeta, KikoCatBody, KikoCatBox, STC>(sender, DECIMAL, 10 * DECIMAL, 0, @platform);
+        NFTScripts::box_initial_offering<KikoCatMeta, KikoCatBody, KikoCatBox, STC>(sender, 1, 10 * DECIMAL, 0, @platform);
     }
 }
 // check: EXECUTED
@@ -116,8 +124,6 @@ script {
     use 0x1::STC::STC;
     use 0x111::KikoCat01::{KikoCatBox};
     use 0x333::NFTScripts;
-
-    const DECIMAL: u128 = 1000000000;
 
     fun box_initial_offering(sender: signer) {
         NFTScripts::box_buy_from_offering<KikoCatBox, STC>(sender, 1);

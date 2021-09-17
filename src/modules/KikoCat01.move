@@ -17,8 +17,12 @@ module KikoCat01 {
     // NFT extra meta
     struct KikoCatMeta has copy, store, drop {
         background: vector<u8>,
-        breed: vector<u8>,
-        decorate: vector<u8>,
+        fur: vector<u8>,
+        clothes: vector<u8>,
+        facial_expression: vector<u8>,
+        head: vector<u8>,
+        accessories: vector<u8>,
+        eyes: vector<u8>,
     }
 
     // NFT body
@@ -45,8 +49,12 @@ module KikoCat01 {
         image: vector<u8>,
         description: vector<u8>,
         background: vector<u8>,
-        breed: vector<u8>,
-        decorate: vector<u8>,
+        fur: vector<u8>,
+        clothes: vector<u8>,
+        facial_expression: vector<u8>,
+        head: vector<u8>,
+        accessories: vector<u8>,
+        eyes: vector<u8>,
     ) acquires KikoCatNFTCapability, KikoCatGallery {
         let sender_address = Signer::address_of(sender);
         let cap = borrow_global_mut<KikoCatNFTCapability>(sender_address);
@@ -56,9 +64,13 @@ module KikoCat01 {
             &mut cap.mint,
             metadata,
             KikoCatMeta {
-                background: background,
-                breed: breed,
-                decorate: decorate,
+                background,
+                fur,
+                clothes,
+                facial_expression,
+                head,
+                accessories,
+                eyes,
             },
             KikoCatBody {}
         );
@@ -114,8 +126,7 @@ module KikoCat01 {
     // box
     struct KikoCatBox has copy, drop, store {}
 
-    const PRECISION: u8 = 9;
-    const SCALING_FACTOR: u128 = 1000000000;
+    const PRECISION: u8 = 0;
 
     struct KikoCatBoxCapability has key, store {
         mint: Token::MintCapability<KikoCatBox>,
@@ -139,7 +150,7 @@ module KikoCat01 {
     }
 
     fun burn_box(token: Token::Token<KikoCatBox>)
-    acquires KikoCatBoxCapability{
+    acquires KikoCatBoxCapability {
         let cap = borrow_global<KikoCatBoxCapability>(NFT_ADDRESS);
         Token::burn_with_capability(&cap.burn, token);
     }
@@ -156,24 +167,29 @@ module KikoCat01 {
     }
 
     // mint NFT and box
-    public(script) fun mint(sender: signer,
-                    name: vector<u8>,
-                    image: vector<u8>,
-                    description: vector<u8>,
-                    background: vector<u8>,
-                    breed: vector<u8>,
-                    decorate: vector<u8>,
+    public(script) fun mint(
+        sender: signer,
+        name: vector<u8>,
+        image: vector<u8>,
+        description: vector<u8>,
+        background: vector<u8>,
+        fur: vector<u8>,
+        clothes: vector<u8>,
+        facial_expression: vector<u8>,
+        head: vector<u8>,
+        accessories: vector<u8>,
+        eyes: vector<u8>,
     ) acquires KikoCatNFTCapability, KikoCatBoxCapability, KikoCatGallery {
         let sender_address = Signer::address_of(&sender);
         assert(sender_address == NFT_ADDRESS, PERMISSION_DENIED);
-        mint_nft(&sender, name, image, description, background, breed, decorate);
-        mint_box(&sender, 1 * SCALING_FACTOR);
+        mint_nft(&sender, name, image, description, background, fur, clothes, facial_expression, head, accessories, eyes);
+        mint_box(&sender, 1);
     }
 
     // open box and get a random NFT
     public(script) fun open_box(sender: signer)
     acquires KikoCatBoxCapability, KikoCatGallery {
-        let box_token = Account::withdraw<KikoCatBox>(&sender, 1 * SCALING_FACTOR);
+        let box_token = Account::withdraw<KikoCatBox>(&sender, 1);
         burn_box(box_token);
         let sender_address = Signer::address_of(&sender);
         // get hash last 64 bit and mod nft_size
