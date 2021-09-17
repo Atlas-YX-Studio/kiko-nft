@@ -82,10 +82,38 @@ script {
     use 0x111::KikoCat01;
 
     fun init_box(sender: signer) {
-        NFTMarket::init_market<KikoCat01::KikoCatMeta, KikoCat01::KikoCatBody, ETH, USDT>(&sender, @0x111);
+        NFTMarket::init_market<KikoCat01::KikoCatMeta, KikoCat01::KikoCatBody, ETH, USDT>(&sender, @0x11111);
     }
 }
 // check: "Keep(EXECUTED)"
+
+
+//! new-transaction
+//! account: my, 0x11111
+//! sender: my
+address my = {{my}};
+script {
+    use 0x1::Account;
+    use dummy::Dummy::{USDT};
+
+    fun accept_token(sender: signer) {
+        Account::accept_token<USDT>(sender);
+    }
+}
+// check: EXECUTED
+
+//! new-transaction
+//! sender: maket
+address maket = {{maket}};
+script {
+    use 0x1::Account;
+    use dummy::Dummy::{USDT};
+
+    fun accept_token(sender: signer) {
+        Account::accept_token<USDT>(sender);
+    }
+}
+// check: EXECUTED
 
 
 //! new-transaction
@@ -122,9 +150,97 @@ script {
 
     fun box_buy(sender: signer) {
         Dummy::mint_token<ETH>(&sender, 1 * MULTIPLE);
-        Dummy::mint_token<USDT>(&sender, 2 * MULTIPLE);
+        Dummy::mint_token<USDT>(&sender, 20 * MULTIPLE);
 
         NFTMarket::box_buy<ETH, USDT>(&sender, 1);
+    }
+}
+// check: EXECUTED
+
+
+
+//! new-transaction
+//! account: bob, 0x77
+//! sender: bob
+address bob = {{bob}};
+script {
+    use dummy::Dummy::{Self, ETH, USDT};
+    use 0x222::NFTMarket;
+
+    const MULTIPLE: u128 = 10000;
+
+    fun box_bid(sender: signer) {
+        Dummy::mint_token<ETH>(&sender, 1 * MULTIPLE);
+        Dummy::mint_token<USDT>(&sender, 20 * MULTIPLE);
+
+        //        NFTMarket::box_buy<ETH, USDT>(&sender, 2);
+        //        NFTMarket::box_buy<ETH, USDT>(&sender, 3);
+        //        NFTMarket::box_buy<ETH, USDT>(&sender, 4);
+        NFTMarket::box_bid<ETH, USDT>(&sender, 2, 6 * MULTIPLE);
+    }
+}
+// check: EXECUTED
+
+
+//! new-transaction
+//! account: jack, 0x88
+//! sender: jack
+address bob = {{bob}};
+script {
+    use dummy::Dummy::{Self, ETH, USDT};
+    use 0x222::NFTMarket;
+
+    const MULTIPLE: u128 = 10000;
+
+    fun box_bid(sender: signer) {
+        Dummy::mint_token<ETH>(&sender, 1 * MULTIPLE);
+        Dummy::mint_token<USDT>(&sender, 20 * MULTIPLE);
+
+        NFTMarket::box_bid<ETH, USDT>(&sender, 3, 6 * MULTIPLE);
+    }
+}
+// check: EXECUTED
+
+
+
+//! new-transaction
+//! account: jackma, 0x8888
+//! sender: jackma
+address bob = {{bob}};
+script {
+    use dummy::Dummy::{Self, ETH, USDT};
+    use 0x222::NFTMarket;
+
+    const MULTIPLE: u128 = 10000;
+
+    fun box_bid(sender: signer) {
+        Dummy::mint_token<ETH>(&sender, 1 * MULTIPLE);
+        Dummy::mint_token<USDT>(&sender, 20 * MULTIPLE);
+
+        NFTMarket::box_bid<ETH, USDT>(&sender, 3, 8 * MULTIPLE);
+    }
+}
+// check: EXECUTED
+
+
+//! new-transaction
+//! account: jackyun, 0x9999
+//! sender: jackyun
+address bob = {{bob}};
+script {
+    use dummy::Dummy::{Self, ETH, USDT};
+    use 0x222::NFTMarket;
+
+    const MULTIPLE: u128 = 10000;
+
+    fun box_accept_bid(sender: signer) {
+        Dummy::mint_token<ETH>(&sender, 1 * MULTIPLE);
+        Dummy::mint_token<USDT>(&sender, 20 * MULTIPLE);
+
+        //        NFTMarket::box_buy<ETH, USDT>(&sender, 2);
+        //        NFTMarket::box_buy<ETH, USDT>(&sender, 3);
+        //        NFTMarket::box_buy<ETH, USDT>(&sender, 4);
+        NFTMarket::box_accept_bid<ETH, USDT>(&sender, 3);
     }
 }
 // check: EXECUTED

@@ -430,19 +430,15 @@ module NFTMarket {
         let withdraw_box_token = Token::withdraw<BoxToken>(&mut box_sell_info.box_tokens, 1);
         Account::deposit(buyer_address, withdraw_box_token);
 
-        0x1::Debug::print(&111111111u128);
-
         let (creator_fee,platform_fee) = get_fee(sell_price);
-        0x1::Debug::print(&creator_fee);
-        0x1::Debug::print(&platform_fee);
 
-        let creator_fee_token = Token::withdraw<PayToken>(&mut box_sell_info.bid_tokens, creator_fee);
+        let creator_fee_token = Account::withdraw<PayToken>(buyer, creator_fee);
         Account::deposit<PayToken>(box_sellings.creator, creator_fee_token);
 
-        let platform_fee_token = Token::withdraw<PayToken>(&mut box_sell_info.bid_tokens, platform_fee);
+        let platform_fee_token = Account::withdraw<PayToken>(buyer, platform_fee);
         Account::deposit<PayToken>(NFT_MARKET_ADDRESS, platform_fee_token);
 
-        let surplus_amount = sell_price - creator_fee - creator_fee;
+        let surplus_amount = sell_price - creator_fee - platform_fee;
         let withdraw_buy_box_token = Account::withdraw<PayToken>(buyer, surplus_amount);
         Account::deposit(seller_address, withdraw_buy_box_token);
 
