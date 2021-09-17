@@ -25,6 +25,7 @@ module NFTMarket {
     const BOX_SELLING_NOT_EXIST: u64 = 200009;
     const BOX_SELLING_IS_EMPTY: u64 = 200010;
     const BOX_SELLING_PRICE_SMALL: u64 = 200011;
+    const BOX_SELLING_INDEX_OUT_BOUNDS: u64 = 200012;
 
     // ******************** Initial Offering ********************
     struct Config has key, store {
@@ -278,7 +279,7 @@ module NFTMarket {
                 break
             };
             k = k + 1;
-            assert(k < len,  BOX_SELLING_NOT_EXIST);
+            assert(k < len,  BOX_SELLING_INDEX_OUT_BOUNDS);
             box_sell_info = Vector::borrow_mut(&mut box_sellings.items, k);
         };
 
@@ -355,7 +356,7 @@ module NFTMarket {
                 break
             };
             k = k + 1;
-            assert(k < len,  BOX_SELLING_NOT_EXIST);
+            assert(k < len,  BOX_SELLING_INDEX_OUT_BOUNDS);
             box_sell_info = Vector::borrow_mut(&mut box_sellings.items, k);
         };
 
@@ -413,7 +414,7 @@ module NFTMarket {
                 break
             };
             k = k + 1;
-            assert(k < len,  BOX_SELLING_NOT_EXIST);
+            assert(k < len,  BOX_SELLING_INDEX_OUT_BOUNDS);
             box_sell_info = Vector::borrow_mut(&mut box_sellings.items, k);
         };
         let seller_address = box_sell_info.seller;
