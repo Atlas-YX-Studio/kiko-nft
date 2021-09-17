@@ -130,3 +130,15 @@ script {
     }
 }
 // check: EXECUTED
+
+//! new-transaction
+//! sender: alice
+address alice = {{alice}};
+script {
+    use 0x111::KikoCat01;
+
+    fun init(sender: signer) {
+        KikoCat01::open_box(sender);
+    }
+}
+// check: EXECUTED

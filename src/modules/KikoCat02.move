@@ -191,7 +191,6 @@ module KikoCat01 {
     acquires KikoCatBoxCapability, KikoCatGallery {
         let box_token = Account::withdraw<KikoCatBox>(&sender, 1);
         burn_box(box_token);
-        let sender_address = Signer::address_of(&sender);
         // get hash last 64 bit and mod nft_size
         let hash = Block::get_parent_hash();
         let k = 0u64;
@@ -201,9 +200,9 @@ module KikoCat01 {
             k = (tmp << (i * 8) as u64) + k;
             i = i + 1;
         };
-        let idx = k % count_of(sender_address);
+        let idx = k % count_of(NFT_ADDRESS);
         // get a nft
-        let nft = withdraw_by_idx(sender_address, idx);
+        let nft = withdraw_by_idx(NFT_ADDRESS, idx);
         NFTGallery::accept<KikoCatMeta, KikoCatBody>(&sender);
         NFTGallery::deposit<KikoCatMeta, KikoCatBody>(&sender, nft);
     }
