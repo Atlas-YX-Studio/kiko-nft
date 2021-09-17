@@ -126,8 +126,7 @@ module KikoCat01 {
     // box
     struct KikoCatBox has copy, drop, store {}
 
-    const PRECISION: u8 = 9;
-    const SCALING_FACTOR: u128 = 1000000000;
+    const PRECISION: u8 = 0;
 
     struct KikoCatBoxCapability has key, store {
         mint: Token::MintCapability<KikoCatBox>,
@@ -184,13 +183,13 @@ module KikoCat01 {
         let sender_address = Signer::address_of(&sender);
         assert(sender_address == NFT_ADDRESS, PERMISSION_DENIED);
         mint_nft(&sender, name, image, description, background, fur, clothes, facial_expression, head, accessories, eyes);
-        mint_box(&sender, 1 * SCALING_FACTOR);
+        mint_box(&sender, 1);
     }
 
     // open box and get a random NFT
     public(script) fun open_box(sender: signer)
     acquires KikoCatBoxCapability, KikoCatGallery {
-        let box_token = Account::withdraw<KikoCatBox>(&sender, 1 * SCALING_FACTOR);
+        let box_token = Account::withdraw<KikoCatBox>(&sender, 1);
         burn_box(box_token);
         let sender_address = Signer::address_of(&sender);
         // get hash last 64 bit and mod nft_size
