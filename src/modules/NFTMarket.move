@@ -293,7 +293,7 @@ module NFTMarket {
         let platform_fee_token = Token::withdraw<PayToken>(&mut box_sell_info.bid_tokens, platform_fee);
         Account::deposit<PayToken>(NFT_MARKET_ADDRESS, platform_fee_token);
 
-        let surplus_amount = bid_amount - creator_fee - creator_fee;
+        let surplus_amount = bid_amount - creator_fee - platform_fee;
         let withdraw_bid_token = Token::withdraw<PayToken>(&mut box_sell_info.bid_tokens, surplus_amount);
         Account::deposit(seller_address, withdraw_bid_token);
 
