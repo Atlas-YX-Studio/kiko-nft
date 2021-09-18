@@ -74,18 +74,33 @@ module KikoCat01 {
             },
             KikoCatBody {}
         );
-        deposit(sender_address, nft);
+        let gallery = borrow_global_mut<KikoCatGallery>(sender_address);
+        let id = NFT::get_id<KikoCatMeta, KikoCatBody>(&nft);
+        Vector::push_back(&mut gallery.items, nft);
+        Event::emit_event<NFTMintEvent<KikoCatMeta, KikoCatBody>>(&mut gallery.nft_mint_events,
+            NFTMintEvent {
+                creator: sender_address,
+                id: id,
+            },
+        );
     }
 
     // ******************** NFT Gallery ********************
     // kiko gallery
     struct KikoCatGallery has key, store {
         items: vector<NFT<KikoCatMeta, KikoCatBody>>,
-        box_open_events: Event::EventHandle<BoxOpenEvent>,
+        nft_mint_events: Event::EventHandle<NFTMintEvent<KikoCatMeta, KikoCatBody>>,
+        box_open_events: Event::EventHandle<BoxOpenEvent<KikoCatMeta, KikoCatBody>>,
     }
 
     // box open event
-    struct BoxOpenEvent has drop, store {
+    struct NFTMintEvent<NFTMeta: store + drop, NFTBody: store + drop> has drop, store {
+        creator: address,
+        id: u64,
+    }
+
+    // box open event
+    struct BoxOpenEvent<NFTMeta: store + drop, NFTBody: store + drop> has drop, store {
         owner: address,
         id: u64,
     }
@@ -95,24 +110,11 @@ module KikoCat01 {
         if (!exists<KikoCatGallery>(Signer::address_of(sender))) {
             let gallery = KikoCatGallery {
                 items: Vector::empty<NFT<KikoCatMeta, KikoCatBody>>(),
-                box_open_events: Event::new_event_handle<BoxOpenEvent>(sender),
+                nft_mint_events: Event::new_event_handle<NFTMintEvent<KikoCatMeta, KikoCatBody>>(sender),
+                box_open_events: Event::new_event_handle<BoxOpenEvent<KikoCatMeta, KikoCatBody>>(sender),
             };
             move_to(sender, gallery);
         }
-    }
-
-    // deposit to someone
-    fun deposit(sender: address, nft: NFT<KikoCatMeta, KikoCatBody>)
-    acquires KikoCatGallery {
-        let gallery = borrow_global_mut<KikoCatGallery>(sender);
-        Vector::push_back(&mut gallery.items, nft);
-    }
-
-    // withdraw nft by index
-    fun withdraw_by_idx(sender: address, idx: u64): NFT<KikoCatMeta, KikoCatBody>
-    acquires KikoCatGallery {
-        let gallery = borrow_global_mut<KikoCatGallery>(sender);
-        Vector::remove<NFT<KikoCatMeta, KikoCatBody>>(&mut gallery.items, idx)
     }
 
     // Count all NFTs assigned to an owner
@@ -201,10 +203,20 @@ module KikoCat01 {
             i = i + 1;
         };
         let idx = k % count_of(NFT_ADDRESS);
-        // get a nft
-        let nft = withdraw_by_idx(NFT_ADDRESS, idx);
+        // get a nft by idx
+        let sender_address = Signer::address_of(&sender);
+        let gallery = borrow_global_mut<KikoCatGallery>(NFT_ADDRESS);
+        let nft = Vector::remove<NFT<KikoCatMeta, KikoCatBody>>(&mut gallery.items, idx);
+        let id = NFT::get_id<KikoCatMeta, KikoCatBody>(&nft);
         NFTGallery::accept<KikoCatMeta, KikoCatBody>(&sender);
         NFTGallery::deposit<KikoCatMeta, KikoCatBody>(&sender, nft);
+        // emit event
+        Event::emit_event<BoxOpenEvent<KikoCatMeta, KikoCatBody>>(&mut gallery.box_open_events,
+            BoxOpenEvent {
+                owner: sender_address,
+                id: id,
+            },
+        );
     }
 }
 }

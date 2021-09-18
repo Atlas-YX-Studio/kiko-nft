@@ -22,7 +22,7 @@ module NFTScripts {
     }
 
     // ******************** Initial Offering ********************
-    public(script) fun init_market<NFTMeta: store + drop, NFTBody: store, BoxToken: store, PayToken: store>(
+    public(script) fun init_market<NFTMeta: store + drop, NFTBody: store + drop, BoxToken: store, PayToken: store>(
         sender: signer,
         creator: address,
     ) {
@@ -30,7 +30,7 @@ module NFTScripts {
     }
 
     // initial offering
-    public(script) fun box_initial_offering<NFTMeta: store + drop, NFTBody: store, BoxToken: store, PayToken: store>(
+    public(script) fun box_initial_offering<NFTMeta: store + drop, NFTBody: store + drop, BoxToken: store, PayToken: store>(
         sender: signer,
         box_amount: u128,
         selling_price: u128,
@@ -52,7 +52,7 @@ module NFTScripts {
 
     // ******************** NFT Transaction ********************
     // NFT sell
-    public(script) fun nft_sell<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(
+    public(script) fun nft_sell<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(
         account: signer,
         id: u64,
         selling_price: u128
@@ -61,7 +61,7 @@ module NFTScripts {
     }
 
     // NFT offline
-    public(script) fun nft_offline<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(
+    public(script) fun nft_offline<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(
         account: signer,
         id: u64,
     ) {
@@ -69,7 +69,7 @@ module NFTScripts {
     }
 
     // NFT bid
-    public(script) fun nft_bid<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(
+    public(script) fun nft_bid<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(
         account: signer,
         id: u64,
         price: u128
@@ -78,7 +78,7 @@ module NFTScripts {
     }
 
     // NFT accept bid
-    public(script) fun nft_accept_bid<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(
+    public(script) fun nft_accept_bid<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(
         account: signer,
         id: u64
     ) {
@@ -86,7 +86,7 @@ module NFTScripts {
     }
 
     // NFT buy
-    public(script) fun nft_buy<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(
+    public(script) fun nft_buy<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(
         account: signer,
         id: u64
     ) {
@@ -136,15 +136,15 @@ module NFTScripts {
     }
 
     // ******************** Buy Back ********************
-    public(script) fun init_buy_back_list<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(sender: signer) {
+    public(script) fun init_buy_back_list<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(sender: signer) {
         NFTMarket::init_buy_back_list<NFTMeta, NFTBody, PayToken>(&sender);
     }
 
-    public(script) fun nft_buy_back<NFTMeta: store + drop, NFTBody: store, PayToken: store>(sender: signer, id: u64, amount: u128) {
+    public(script) fun nft_buy_back<NFTMeta: store + drop, NFTBody: store + drop, PayToken: store>(sender: signer, id: u64, amount: u128) {
         NFTMarket::nft_buy_back<NFTMeta, NFTBody, PayToken>(&sender, id, amount);
     }
 
-    public(script) fun nft_buy_back_sell<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(sender: signer, id: u64) {
+    public(script) fun nft_buy_back_sell<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(sender: signer, id: u64) {
         NFTMarket::nft_buy_back_sell<NFTMeta, NFTBody, PayToken>(&sender, id);
     }
 }
