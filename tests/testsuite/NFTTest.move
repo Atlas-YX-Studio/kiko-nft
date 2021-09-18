@@ -171,6 +171,37 @@ script {
 }
 // check: EXECUTED
 
+//! new-transaction
+//! sender: kiko
+address kiko = {{kiko}};
+script {
+    use 0x1::STC::STC;
+    use 0x333::NFTScripts;
+    use 0x111::KikoCat01::{KikoCatMeta,KikoCatBody};
+    const MULTIPLE: u128 = 1000000000;
+
+    fun nft_offline(sender: signer) {
+        //Dummy::mint_token<ETH>(&sender, 1 * MULTIPLE);
+        NFTScripts::nft_offline<KikoCatMeta, KikoCatBody,STC>(sender, 1);
+    }
+}
+// check: EXECUTED
+
+//! new-transaction
+//! sender: kiko
+address kiko = {{kiko}};
+script {
+    use 0x1::STC::STC;
+    use 0x333::NFTScripts;
+    use 0x111::KikoCat01::{KikoCatMeta,KikoCatBody};
+    const MULTIPLE: u128 = 1000000000;
+
+    fun nft_sell(sender: signer) {
+        //Dummy::mint_token<ETH>(&sender, 1 * MULTIPLE);
+        NFTScripts::nft_sell<KikoCatMeta, KikoCatBody,STC>(sender, 1 ,2 * MULTIPLE);
+    }
+}
+// check: EXECUTED
 
 //! new-transaction
 //! sender: kiko

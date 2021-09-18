@@ -60,6 +60,14 @@ module NFTScripts {
         NFTMarket::nft_sell<NFTMeta, NFTBody, PayToken>(&account, id, selling_price);
     }
 
+    // NFT offline
+    public(script) fun nft_offline<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(
+        account: signer,
+        id: u64,
+    ) {
+        NFTMarket::nft_offline<NFTMeta, NFTBody, PayToken>(&account, id);
+    }
+
     // NFT bid
     public(script) fun nft_bid<NFTMeta: copy + store + drop, NFTBody: store, PayToken: store>(
         account: signer,
@@ -92,6 +100,14 @@ module NFTScripts {
         sell_price: u128
     ) {
         NFTMarket::box_sell<BoxToken, PayToken>(&seller, sell_price);
+    }
+
+    //box sell
+    public(script) fun box_offline<BoxToken: store, PayToken: store>(
+        seller: signer,
+        id: u128
+    ) {
+        NFTMarket::box_offline<BoxToken, PayToken>(&seller, id);
     }
 
     //box accept offer price

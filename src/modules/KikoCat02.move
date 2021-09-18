@@ -58,7 +58,7 @@ module KikoCat01 {
     ) acquires KikoCatNFTCapability, KikoCatGallery {
         let sender_address = Signer::address_of(sender);
         let cap = borrow_global_mut<KikoCatNFTCapability>(sender_address);
-        let metadata = NFT::new_meta_with_image(name, image, description);
+        let metadata = NFT::new_meta_with_image_data(name, image, description);
         let nft = NFT::mint_with_cap<KikoCatMeta, KikoCatBody, KikoCatTypeInfo>(
             sender_address,
             &mut cap.mint,

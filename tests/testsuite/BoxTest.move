@@ -133,6 +133,7 @@ script {
         NFTMarket::box_sell<ETH, USDT>(&sender, 2 * MULTIPLE);
         NFTMarket::box_sell<ETH, USDT>(&sender, 5 * MULTIPLE);
         NFTMarket::box_sell<ETH, USDT>(&sender, 9 * MULTIPLE);
+        NFTMarket::box_sell<ETH, USDT>(&sender, 1 * MULTIPLE);
     }
 }
 // check: EXECUTED
@@ -241,6 +242,19 @@ script {
         //        NFTMarket::box_buy<ETH, USDT>(&sender, 3);
         //        NFTMarket::box_buy<ETH, USDT>(&sender, 4);
         NFTMarket::box_accept_bid<ETH, USDT>(&sender, 3);
+    }
+}
+// check: EXECUTED
+
+//! new-transaction
+//! sender: kiko
+address kiko = {{kiko}};
+script {
+    use dummy::Dummy::{ETH, USDT};
+    use 0x222::NFTMarket;
+
+    fun box_bid(sender: signer) {
+        NFTMarket::box_offline<ETH, USDT>(&sender, 4);
     }
 }
 // check: EXECUTED
