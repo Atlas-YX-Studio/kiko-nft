@@ -6,7 +6,7 @@ script {
     use 0x111::KikoCat01;
 
     fun init(sender: signer) {
-        KikoCat01::init(sender);
+        KikoCat01::init(sender, b"kiko cat", b"abcdefg", b"this is a cat");
     }
 }
 // check: EXECUTED

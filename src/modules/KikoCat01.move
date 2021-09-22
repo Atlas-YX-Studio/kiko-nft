@@ -36,8 +36,14 @@ module KikoCat01 {
     }
 
     // init nft
-    fun init_nft(sender: &signer) {
-        NFT::register<KikoCatMeta, KikoCatTypeInfo>(sender, KikoCatTypeInfo {}, NFT::empty_meta());
+    fun init_nft(
+        sender: &signer,
+        name: vector<u8>,
+        image: vector<u8>,
+        description: vector<u8>,
+    ) {
+        let metadata = NFT::new_meta_with_image_data(name, image, description);
+        NFT::register<KikoCatMeta, KikoCatTypeInfo>(sender, KikoCatTypeInfo {}, metadata);
         let mint = NFT::remove_mint_capability<KikoCatMeta>(sender);
         move_to(sender, KikoCatNFTCapability { mint });
     }
@@ -160,9 +166,14 @@ module KikoCat01 {
     // ******************** NFT public function ********************
 
     // init nft and box
-    public(script) fun init(sender: signer) {
+    public(script) fun init(
+        sender: signer,
+        name: vector<u8>,
+        image: vector<u8>,
+        description: vector<u8>,
+    ) {
         assert(Signer::address_of(&sender) == NFT_ADDRESS, PERMISSION_DENIED);
-        init_nft(&sender);
+        init_nft(&sender, name, image, description);
         init_box(&sender);
         init_gallery(&sender);
         NFTGallery::accept<KikoCatMeta, KikoCatBody>(&sender);
