@@ -127,6 +127,8 @@ module NFTMarket {
                 change_price_events: Event::new_event_handle<NFTChangePriceEvent<NFTMeta, NFTBody>>(sender),
             });
         };
+        // auto accept token
+        Account::set_auto_accept_token(sender, true);
     }
 
     // box initial offering
@@ -311,6 +313,10 @@ module NFTMarket {
             bider: @0x1,
         };
         Vector::push_back(&mut box_sellings.items, new_box);
+        // accept PayToken
+        if (!Account::is_accepts_token<PayToken>(seller_address)){
+            Account::do_accept_token<PayToken>(seller);
+        };
 
         Event::emit_event(
             &mut box_sellings.sell_events,
@@ -485,6 +491,10 @@ module NFTMarket {
             Token::deposit(&mut box_sell_info.bid_tokens, withdraw_buy_box_token);
 
             box_sell_info.bider = buyer_address;
+            // accept BoxToken
+            if (!Account::is_accepts_token<BoxToken>(buyer_address)){
+                Account::do_accept_token<BoxToken>(buyer);
+            };
 
             Event::emit_event(
                 &mut box_sellings.bid_events,
@@ -533,7 +543,7 @@ module NFTMarket {
         };
 
         let withdraw_box_token = Token::withdraw<BoxToken>(&mut box_sell_info.box_tokens, 1);
-        Account::deposit(buyer_address, withdraw_box_token);
+        Account::deposit_to_self(buyer, withdraw_box_token);
 
         let (creator_fee, platform_fee) = get_fee(sell_price);
 
@@ -673,6 +683,10 @@ module NFTMarket {
         };
         // nft_sell_info add Vector
         Vector::push_back(&mut nft_selling.items, nft_sell_info);
+        // accept PayToken
+        if (!Account::is_accepts_token<PayToken>(owner_address)){
+            Account::do_accept_token<PayToken>(account);
+        };
         Event::emit_event<NFTSellEvent<NFTMeta, NFTBody>>(&mut nft_selling.sell_events,
             NFTSellEvent {
                 seller: owner_address,

@@ -171,7 +171,7 @@ script {
     const MULTIPLE: u128 = 10000;
 
     fun box_bid(sender: signer) {
-        Dummy::mint_token<ETH>(&sender, 1 * MULTIPLE);
+//        Dummy::mint_token<ETH>(&sender, 1 * MULTIPLE);
         Dummy::mint_token<USDT>(&sender, 20 * MULTIPLE);
 
         //        NFTMarket::box_buy<ETH, USDT>(&sender, 2);
@@ -225,8 +225,7 @@ script {
 
 
 //! new-transaction
-//! account: jackyun, 0x9999
-//! sender: jackyun
+//! sender: kiko
 address bob = {{bob}};
 script {
     use dummy::Dummy::{Self, ETH, USDT};
@@ -236,7 +235,7 @@ script {
 
     fun box_accept_bid(sender: signer) {
         Dummy::mint_token<ETH>(&sender, 1 * MULTIPLE);
-        Dummy::mint_token<USDT>(&sender, 20 * MULTIPLE);
+//        Dummy::mint_token<USDT>(&sender, 20 * MULTIPLE);
 
         //        NFTMarket::box_buy<ETH, USDT>(&sender, 2);
         //        NFTMarket::box_buy<ETH, USDT>(&sender, 3);
