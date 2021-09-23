@@ -879,6 +879,12 @@ module NFTMarket {
         NFTGallery::accept<NFTMeta, NFTBody>(account);
         // nft transer Own
         NFTGallery::deposit<NFTMeta, NFTBody>(account, nft);
+        // give back bid token to bider
+        let bid_price = Token::value<PayToken>(&nft_sell_info.bid_tokens);
+        if (bid_price > 0u128) {
+            let withdraw_bid_token = Token::withdraw<PayToken>(&mut nft_sell_info.bid_tokens, bid_price);
+            Account::deposit<PayToken>(nft_sell_info.bider, withdraw_bid_token);
+        };
 
         //send NFTSellEvent event
         Event::emit_event<NFTBuyEvent<NFTMeta, NFTBody>>(&mut nft_token.buy_events,
