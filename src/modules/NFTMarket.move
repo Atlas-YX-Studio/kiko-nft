@@ -111,20 +111,22 @@ module NFTMarket {
                 creator: creator,
                 last_id: 0u128,
                 sell_events: Event::new_event_handle<BoxSellEvent>(sender),
+                change_price_events: Event::new_event_handle<BoxChangePriceEvent>(sender),
+                offline_events: Event::new_event_handle<BoxOfflineEvent>(sender),
                 bid_events: Event::new_event_handle<BoxBidEvent>(sender),
                 buy_events: Event::new_event_handle<BoxBuyEvent>(sender),
-                offline_events: Event::new_event_handle<BoxOfflineEvent>(sender),
-                change_price_events: Event::new_event_handle<BoxChangePriceEvent>(sender),
+                accept_bid_events: Event::new_event_handle<BoxAcceptBidEvent>(sender),
             });
         };
         if (!exists<NFTSelling<NFTMeta, NFTBody, PayToken>>(sender_address)) {
             move_to(sender, NFTSelling<NFTMeta, NFTBody, PayToken> {
                 items: Vector::empty(),
                 sell_events: Event::new_event_handle<NFTSellEvent<NFTMeta, NFTBody>>(sender),
+                change_price_events: Event::new_event_handle<NFTChangePriceEvent<NFTMeta, NFTBody>>(sender),
+                offline_events: Event::new_event_handle<NFTOfflineEvent<NFTMeta, NFTBody>>(sender),
                 bid_events: Event::new_event_handle<NFTBidEvent<NFTMeta, NFTBody>>(sender),
                 buy_events: Event::new_event_handle<NFTBuyEvent<NFTMeta, NFTBody>>(sender),
-                offline_events: Event::new_event_handle<NFTOfflineEvent<NFTMeta, NFTBody>>(sender),
-                change_price_events: Event::new_event_handle<NFTChangePriceEvent<NFTMeta, NFTBody>>(sender),
+                accept_bid_events: Event::new_event_handle<NFTAcceptBidEvent<NFTMeta, NFTBody>>(sender),
             });
         };
         // auto accept token
@@ -195,10 +197,11 @@ module NFTMarket {
         creator: address,
         last_id: u128,
         sell_events: Event::EventHandle<BoxSellEvent>,
+        change_price_events: Event::EventHandle<BoxChangePriceEvent>,
+        offline_events: Event::EventHandle<BoxOfflineEvent>,
         bid_events: Event::EventHandle<BoxBidEvent>,
         buy_events: Event::EventHandle<BoxBuyEvent>,
-        offline_events: Event::EventHandle<BoxOfflineEvent>,
-        change_price_events: Event::EventHandle<BoxChangePriceEvent>,
+        accept_bid_events: Event::EventHandle<BoxAcceptBidEvent>,
     }
 
     // box sell info
@@ -212,11 +215,13 @@ module NFTMarket {
         // top price bid tokens
         bid_tokens: Token::Token<PayToken>,
         // buyer address
-        bider: address,
+        bidder: address,
     }
 
     // box sell event
     struct BoxSellEvent has drop, store {
+        // id
+        id: u128,
         // seller address
         seller: address,
         box_token_code: Token::TokenCode,
@@ -225,58 +230,12 @@ module NFTMarket {
         quantity: u128,
         // selling price
         selling_price: u128,
-    }
-
-    // box offer price event
-    struct BoxBidEvent has drop, store {
-        // seller address
-        seller: address,
-        box_token_code: Token::TokenCode,
-        pay_token_code: Token::TokenCode,
-        // box quantity
-        quantity: u128,
-        // selling price
-        selling_price: u128,
-        // bider address
-        bider: address,
-        // bid price, lower than selling price
-        bid_price: u128,
-    }
-
-    // box buy event
-    struct BoxBuyEvent has drop, store {
-        // seller address
-        seller: address,
-        box_token_code: Token::TokenCode,
-        pay_token_code: Token::TokenCode,
-        // box quantity
-        quantity: u128,
-        // selling price
-        selling_price: u128,
-        // final price
-        final_price: u128,
-        // buyer address
-        buyer: address,
-    }
-
-    // box offline event
-    struct BoxOfflineEvent has drop, store {
-        // seller address
-        seller: address,
-        box_token_code: Token::TokenCode,
-        pay_token_code: Token::TokenCode,
-        // box quantity
-        quantity: u128,
-        // selling price
-        selling_price: u128,
-        // buyer address
-        bider: address,
-        // bid price, lower than selling price
-        bid_price: u128,
     }
 
     // box change price event
     struct BoxChangePriceEvent has drop, store {
+        // id
+        id: u128,
         // seller address
         seller: address,
         box_token_code: Token::TokenCode,
@@ -287,30 +246,112 @@ module NFTMarket {
         before_price: u128,
         after_price: u128,
         // buyer address
-        bider: address,
+        bidder: address,
         // bid price, lower than selling price
         bid_price: u128,
+    }
+
+    // box offline event
+    struct BoxOfflineEvent has drop, store {
+        // id
+        id: u128,
+        // seller address
+        seller: address,
+        box_token_code: Token::TokenCode,
+        pay_token_code: Token::TokenCode,
+        // box quantity
+        quantity: u128,
+        // selling price
+        selling_price: u128,
+        // buyer address
+        bidder: address,
+        // bid price, lower than selling price
+        bid_price: u128,
+    }
+
+    // box offer price event
+    struct BoxBidEvent has drop, store {
+        // id
+        id: u128,
+        // seller address
+        seller: address,
+        box_token_code: Token::TokenCode,
+        pay_token_code: Token::TokenCode,
+        // box quantity
+        quantity: u128,
+        // selling price
+        selling_price: u128,
+        // bidder address
+        bidder: address,
+        // bid price, lower than selling price
+        bid_price: u128,
+        // previous bidder address
+        prev_bidder: address,
+        // previous bidder price
+        prev_bid_price: u128,
+    }
+
+    // box buy event
+    struct BoxBuyEvent has drop, store {
+        // id
+        id: u128,
+        // seller address
+        seller: address,
+        box_token_code: Token::TokenCode,
+        pay_token_code: Token::TokenCode,
+        // box quantity
+        quantity: u128,
+        // final price
+        final_price: u128,
+        // buyer address
+        buyer: address,
+        // previous bidder address
+        prev_bidder: address,
+        // previous bidder price
+        prev_bid_price: u128,
+        // creator fee
+        creator_fee: u128,
+        // platform fee
+        platform_fee: u128,
+    }
+
+    // box accept bid event
+    struct BoxAcceptBidEvent has drop, store {
+        // id
+        id: u128,
+        // seller address
+        seller: address,
+        box_token_code: Token::TokenCode,
+        pay_token_code: Token::TokenCode,
+        // box quantity
+        quantity: u128,
+        // selling price
+        selling_price: u128,
+        // final price
+        final_price: u128,
+        // bidder address
+        bidder: address,
+        // creator fee
+        creator_fee: u128,
+        // platform fee
+        platform_fee: u128,
     }
 
     // box sell
     public fun box_sell<BoxToken: store, PayToken: store>(seller: &signer, sell_price: u128) acquires BoxSelling {
         assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
-
         let seller_address = Signer::address_of(seller);
 
         let box_sellings = borrow_global_mut<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
-
         box_sellings.last_id = box_sellings.last_id + 1;
-
         let withdraw_box_token = Account::withdraw<BoxToken>(seller, 1);
-
         let new_box = BoxSellInfo<BoxToken, PayToken> {
             id: box_sellings.last_id,
             seller: seller_address,
             box_tokens: withdraw_box_token,
             selling_price: sell_price,
             bid_tokens: Token::zero<PayToken>(),
-            bider: @0x1,
+            bidder: @0x1,
         };
         Vector::push_back(&mut box_sellings.items, new_box);
         // accept PayToken
@@ -321,6 +362,7 @@ module NFTMarket {
         Event::emit_event(
             &mut box_sellings.sell_events,
             BoxSellEvent {
+                id: box_sellings.last_id,
                 seller: seller_address,
                 box_token_code: Token::token_code<BoxToken>(),
                 pay_token_code: Token::token_code<PayToken>(),
@@ -351,11 +393,11 @@ module NFTMarket {
         // check seller
         assert(seller_address == box_sell_info.seller, PERMISSION_DENIED);
 
-        // give back bidToken to bider
+        // give back bidToken to bidder
         let bid_amount = Token::value<PayToken>(&box_sell_info.bid_tokens);
         if (bid_amount > 0) {
             let bid_tokens = Token::withdraw<PayToken>(&mut box_sell_info.bid_tokens, bid_amount);
-            Account::deposit(box_sell_info.bider, bid_tokens);
+            Account::deposit(box_sell_info.bidder, bid_tokens);
         };
         // take back box
         let box_tokens = Token::withdraw<BoxToken>(&mut box_sell_info.box_tokens, 1);
@@ -364,12 +406,13 @@ module NFTMarket {
         Event::emit_event(
             &mut box_sellings.offline_events,
             BoxOfflineEvent {
+                id: box_sell_info.id,
                 seller: box_sell_info.seller,
                 box_token_code: Token::token_code<BoxToken>(),
                 pay_token_code: Token::token_code<PayToken>(),
                 quantity: 1,
                 selling_price: box_sell_info.selling_price,
-                bider: box_sell_info.bider,
+                bidder: box_sell_info.bidder,
                 bid_price: bid_amount,
             }
         );
@@ -381,7 +424,7 @@ module NFTMarket {
             box_tokens,
             selling_price: _,
             bid_tokens,
-            bider: _,
+            bidder: _,
         } = remove_box_sell_info;
         Token::destroy_zero(box_tokens);
         Token::destroy_zero(bid_tokens);
@@ -409,7 +452,7 @@ module NFTMarket {
         };
 
         let withdraw_box_token = Token::withdraw<BoxToken>(&mut box_sell_info.box_tokens, 1);
-        Account::deposit(box_sell_info.bider, withdraw_box_token);
+        Account::deposit(box_sell_info.bidder, withdraw_box_token);
 
         let bid_amount = Token::value<PayToken>(&box_sell_info.bid_tokens);
 
@@ -426,15 +469,18 @@ module NFTMarket {
         Account::deposit(seller_address, withdraw_bid_token);
 
         Event::emit_event(
-            &mut box_sellings.buy_events,
-            BoxBuyEvent {
+            &mut box_sellings.accept_bid_events,
+            BoxAcceptBidEvent {
+                id: box_sell_info.id,
                 seller: box_sell_info.seller,
                 box_token_code: Token::token_code<BoxToken>(),
                 pay_token_code: Token::token_code<PayToken>(),
                 quantity: 1,
                 selling_price: box_sell_info.selling_price,
                 final_price: bid_amount,
-                buyer: box_sell_info.bider,
+                bidder: box_sell_info.bidder,
+                creator_fee: creator_fee,
+                platform_fee: platform_fee,
             }
         );
 
@@ -445,7 +491,7 @@ module NFTMarket {
             box_tokens,
             selling_price: _,
             bid_tokens,
-            bider: _,
+            bidder: _,
         } = remove_box_sell_info;
         Token::destroy_zero(box_tokens);
         Token::destroy_zero(bid_tokens);
@@ -477,6 +523,7 @@ module NFTMarket {
             box_buy<BoxToken, PayToken>(buyer, id);
         } else {
             let bid_price = Token::value<PayToken>(&box_sell_info.bid_tokens);
+            let prev_bidder = box_sell_info.bidder;
             //There is already a quotation
             if (bid_price > 0u128) {
                 //The latest quotation is less than or equal to the previous highest quotation
@@ -484,13 +531,13 @@ module NFTMarket {
 
                 //If the latest quotation is greater than the previous highest quotation, the previous users will be returned
                 let withdraw_bid_token = Token::withdraw<PayToken>(&mut box_sell_info.bid_tokens, bid_price);
-                Account::deposit<PayToken>(box_sell_info.bider, withdraw_bid_token);
+                Account::deposit<PayToken>(box_sell_info.bidder, withdraw_bid_token);
             };
 
             let withdraw_buy_box_token = Account::withdraw<PayToken>(buyer, offer_price);
             Token::deposit(&mut box_sell_info.bid_tokens, withdraw_buy_box_token);
 
-            box_sell_info.bider = buyer_address;
+            box_sell_info.bidder = buyer_address;
             // accept BoxToken
             if (!Account::is_accepts_token<BoxToken>(buyer_address)){
                 Account::do_accept_token<BoxToken>(buyer);
@@ -499,13 +546,16 @@ module NFTMarket {
             Event::emit_event(
                 &mut box_sellings.bid_events,
                 BoxBidEvent {
+                    id: box_sell_info.id,
                     seller: box_sell_info.seller,
                     box_token_code: Token::token_code<BoxToken>(),
                     pay_token_code: Token::token_code<PayToken>(),
                     quantity: 1,
                     selling_price: box_sell_info.selling_price,
-                    bider: buyer_address,
+                    bidder: buyer_address,
                     bid_price: offer_price,
+                    prev_bidder: prev_bidder,
+                    prev_bid_price: bid_price,
                 }
             );
         };
@@ -539,7 +589,7 @@ module NFTMarket {
         if (bid_price > 0u128) {
             //If the latest quotation is greater than the previous highest quotation, the previous users will be returned
             let withdraw_bid_token = Token::withdraw<PayToken>(&mut box_sell_info.bid_tokens, bid_price);
-            Account::deposit<PayToken>(box_sell_info.bider, withdraw_bid_token);
+            Account::deposit<PayToken>(box_sell_info.bidder, withdraw_bid_token);
         };
 
         let withdraw_box_token = Token::withdraw<BoxToken>(&mut box_sell_info.box_tokens, 1);
@@ -557,17 +607,20 @@ module NFTMarket {
         let withdraw_buy_box_token = Account::withdraw<PayToken>(buyer, surplus_amount);
         Account::deposit(seller_address, withdraw_buy_box_token);
 
-        //        box_sell_info.bider = buyer_address;
         Event::emit_event(
             &mut box_sellings.buy_events,
             BoxBuyEvent {
+                id: box_sell_info.id,
                 seller: box_sell_info.seller,
                 box_token_code: Token::token_code<BoxToken>(),
                 pay_token_code: Token::token_code<PayToken>(),
                 quantity: 1,
-                selling_price: box_sell_info.selling_price,
-                final_price: sell_price,
                 buyer: buyer_address,
+                final_price: box_sell_info.selling_price,
+                prev_bidder: box_sell_info.bidder,
+                prev_bid_price: bid_price,
+                creator_fee: creator_fee,
+                platform_fee: platform_fee,
             }
         );
 
@@ -578,7 +631,7 @@ module NFTMarket {
             box_tokens,
             selling_price: _,
             bid_tokens,
-            bider: _,
+            bidder: _,
         } = remove_box_sell_info;
         Token::destroy_zero(box_tokens);
         Token::destroy_zero(bid_tokens);
@@ -591,10 +644,11 @@ module NFTMarket {
         // nft selling list
         items: vector<NFTSellInfo<NFTMeta, NFTBody, PayToken>>,
         sell_events: Event::EventHandle<NFTSellEvent<NFTMeta, NFTBody>>,
+        change_price_events: Event::EventHandle<NFTChangePriceEvent<NFTMeta, NFTBody>>,
+        offline_events: Event::EventHandle<NFTOfflineEvent<NFTMeta, NFTBody>>,
         bid_events: Event::EventHandle<NFTBidEvent<NFTMeta, NFTBody>>,
         buy_events: Event::EventHandle<NFTBuyEvent<NFTMeta, NFTBody>>,
-        offline_events: Event::EventHandle<NFTOfflineEvent<NFTMeta, NFTBody>>,
-        change_price_events: Event::EventHandle<NFTChangePriceEvent<NFTMeta, NFTBody>>,
+        accept_bid_events: Event::EventHandle<NFTAcceptBidEvent<NFTMeta, NFTBody>>,
     }
 
     // NFT extra sell info
@@ -609,7 +663,7 @@ module NFTMarket {
         // top price bid tokens
         bid_tokens: Token::Token<PayToken>,
         // buyer address
-        bider: address,
+        bidder: address,
     }
 
     // NFT sell event
@@ -620,23 +674,15 @@ module NFTMarket {
         selling_price: u128,
     }
 
-    // NFT bid event
-    struct NFTBidEvent<NFTMeta: store + drop, NFTBody: store + drop> has drop, store {
+    // NFT change price event
+    struct NFTChangePriceEvent<NFTMeta: store + drop, NFTBody: store + drop> has drop, store {
         seller: address,
         id: u64,
         pay_token_code: Token::TokenCode,
-        selling_price: u128,
+        before_price: u128,
+        after_price: u128,
         bid_price: u128,
-        bider: address,
-    }
-
-    // NFT buy event
-    struct NFTBuyEvent<NFTMeta: store + drop, NFTBody: store + drop> has drop, store {
-        seller: address,
-        id: u64,
-        pay_token_code: Token::TokenCode,
-        final_price: u128,
-        buyer: address,
+        bidder: address,
     }
 
     // NFT offline event
@@ -646,18 +692,44 @@ module NFTMarket {
         pay_token_code: Token::TokenCode,
         selling_price: u128,
         bid_price: u128,
-        bider: address,
+        bidder: address,
     }
 
-    // NFT change price event
-    struct NFTChangePriceEvent<NFTMeta: store + drop, NFTBody: store + drop> has drop, store {
+    // NFT bid event
+    struct NFTBidEvent<NFTMeta: store + drop, NFTBody: store + drop> has drop, store {
         seller: address,
         id: u64,
         pay_token_code: Token::TokenCode,
-        before_price: u128,
-        after_price: u128,
+        selling_price: u128,
         bid_price: u128,
-        bider: address,
+        bidder: address,
+        prev_bid_price: u128,
+        prev_bidder: address,
+    }
+
+    // NFT buy event
+    struct NFTBuyEvent<NFTMeta: store + drop, NFTBody: store + drop> has drop, store {
+        seller: address,
+        id: u64,
+        pay_token_code: Token::TokenCode,
+        final_price: u128,
+        buyer: address,
+        prev_bid_price: u128,
+        prev_bidder: address,
+        creator_fee: u128,
+        platform_fee: u128,
+    }
+
+    // NFT bid event
+    struct NFTAcceptBidEvent<NFTMeta: store + drop, NFTBody: store + drop> has drop, store {
+        seller: address,
+        id: u64,
+        pay_token_code: Token::TokenCode,
+        selling_price: u128,
+        final_price: u128,
+        bidder: address,
+        creator_fee: u128,
+        platform_fee: u128,
     }
 
     // NFT sell
@@ -679,7 +751,7 @@ module NFTMarket {
             id: id,
             selling_price: selling_price,
             bid_tokens: Token::zero<PayToken>(),
-            bider: @0x1,
+            bidder: @0x1,
         };
         // nft_sell_info add Vector
         Vector::push_back(&mut nft_selling.items, nft_sell_info);
@@ -687,7 +759,7 @@ module NFTMarket {
         if (!Account::is_accepts_token<PayToken>(owner_address)){
             Account::do_accept_token<PayToken>(account);
         };
-        Event::emit_event<NFTSellEvent<NFTMeta, NFTBody>>(&mut nft_selling.sell_events,
+        Event::emit_event(&mut nft_selling.sell_events,
             NFTSellEvent {
                 seller: owner_address,
                 id: id,
@@ -708,7 +780,7 @@ module NFTMarket {
         // check seller
         let user_address = Signer::address_of(account);
         assert(user_address == nft_sell_info.seller, PERMISSION_DENIED);
-        // give back payToken to bider
+        // give back payToken to bidder
         let bid_amount = Token::value(&nft_sell_info.bid_tokens);
         if (bid_amount > 0) {
             let bid_tokens = Token::withdraw<PayToken>(&mut nft_sell_info.bid_tokens, bid_amount);
@@ -717,14 +789,14 @@ module NFTMarket {
         // get back NFT
         let nft = Option::extract(&mut nft_sell_info.nft);
         NFTGallery::deposit_to<NFTMeta, NFTBody>(nft_sell_info.seller, nft);
-        Event::emit_event<NFTOfflineEvent<NFTMeta, NFTBody>>(&mut nft_selling.offline_events,
+        Event::emit_event(&mut nft_selling.offline_events,
             NFTOfflineEvent {
                 seller: nft_sell_info.seller,
                 id: nft_sell_info.id,
                 pay_token_code: Token::token_code<PayToken>(),
                 selling_price: nft_sell_info.selling_price,
                 bid_price: bid_amount,
-                bider: nft_sell_info.bider,
+                bidder: nft_sell_info.bidder,
             },
         );
         // destory
@@ -734,7 +806,7 @@ module NFTMarket {
             id: _,
             selling_price: _,
             bid_tokens,
-            bider: _,
+            bidder: _,
         } = nft_sell_info;
         Token::destroy_zero(bid_tokens);
         Option::destroy_none(nft);
@@ -749,38 +821,40 @@ module NFTMarket {
         assert(exists<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), OFFERING_NOT_EXISTS);
         let nft_token = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
         let nft_sell_info = find_ntf_sell_info_by_id<NFTMeta, NFTBody, PayToken>(&mut nft_token.items, id);
-        //bider address
+        //bidder address
         let user_address = Signer::address_of(account);
         if (price >= nft_sell_info.selling_price) {
             f_nft_buy<NFTMeta, NFTBody, PayToken>(account, nft_sell_info);
         } else {
             // get bid token quantity
             let bid_tokens = Token::value(&nft_sell_info.bid_tokens);
-
+            let prev_bidder = nft_sell_info.bidder;
             if (bid_tokens > 0) {
                 assert(price > bid_tokens, BID_FAILED);
                 // pool deduct token
                 let pool_tokens = Token::withdraw<PayToken>(&mut nft_sell_info.bid_tokens, bid_tokens);
                 // pay
-                Account::deposit<PayToken>(nft_sell_info.bider, pool_tokens);
+                Account::deposit<PayToken>(nft_sell_info.bidder, pool_tokens);
             };
 
             // Deduct deduction from my account PayToken
             let me_tokens = Account::withdraw<PayToken>(account, price);
             // Go to the pool
             Token::deposit(&mut nft_sell_info.bid_tokens, me_tokens);
-            nft_sell_info.bider = user_address;
+            nft_sell_info.bidder = user_address;
             // accept
             NFTGallery::accept<NFTMeta, NFTBody>(account);
             //send NFTBidEvent event
-            Event::emit_event<NFTBidEvent<NFTMeta, NFTBody>>(&mut nft_token.bid_events,
+            Event::emit_event(&mut nft_token.bid_events,
                 NFTBidEvent {
                     seller: nft_sell_info.seller,
                     id: id,
                     pay_token_code: Token::token_code<PayToken>(),
                     selling_price: nft_sell_info.selling_price,
                     bid_price: price,
-                    bider: user_address,
+                    bidder: user_address,
+                    prev_bid_price: bid_tokens,
+                    prev_bidder: prev_bidder,
                 }
             );
             // nft_sell_info add Vector
@@ -794,8 +868,8 @@ module NFTMarket {
         id: u64
     ) acquires NFTSelling, Config {
         let user_address = Signer::address_of(account);
-        let nft_token = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
-        let nft_sell_info = find_ntf_sell_info_by_id<NFTMeta, NFTBody, PayToken>(&mut nft_token.items, id);
+        let nft_selling = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
+        let nft_sell_info = find_ntf_sell_info_by_id<NFTMeta, NFTBody, PayToken>(&mut nft_selling.items, id);
         let bid_tokens = Token::value(&nft_sell_info.bid_tokens);
         let nft = Option::extract(&mut nft_sell_info.nft);
 
@@ -808,20 +882,23 @@ module NFTMarket {
         let platform_fee_token = Token::withdraw<PayToken>(&mut nft_sell_info.bid_tokens, platform_fee);
         Account::deposit<PayToken>(NFT_MARKET_ADDRESS, platform_fee_token);
 
-        let surplus_amount = bid_tokens - creator_fee - creator_fee;
+        let surplus_amount = bid_tokens - creator_fee - platform_fee;
         let surplus_amount_token = Token::withdraw<PayToken>(&mut nft_sell_info.bid_tokens, surplus_amount);
         Account::deposit<PayToken>(user_address, surplus_amount_token);
 
-        // nft ransfer to bider
-        NFTGallery::deposit_to<NFTMeta, NFTBody>(nft_sell_info.bider, nft);
+        // nft ransfer to bidder
+        NFTGallery::deposit_to<NFTMeta, NFTBody>(nft_sell_info.bidder, nft);
 
-        Event::emit_event<NFTBuyEvent<NFTMeta, NFTBody>>(&mut nft_token.buy_events,
-            NFTBuyEvent {
+        Event::emit_event(&mut nft_selling.accept_bid_events,
+            NFTAcceptBidEvent {
                 seller: nft_sell_info.seller,
                 id: nft_sell_info.id,
                 pay_token_code: Token::token_code<PayToken>(),
+                selling_price: nft_sell_info.selling_price,
                 final_price: bid_tokens,
-                buyer: user_address,
+                bidder: user_address,
+                creator_fee: creator_fee,
+                platform_fee: platform_fee,
             },
         );
 
@@ -831,7 +908,7 @@ module NFTMarket {
             id: _,
             selling_price: _,
             bid_tokens,
-            bider: _,
+            bidder: _,
         } = nft_sell_info;
         Token::destroy_zero(bid_tokens);
         Option::destroy_none(nft);
@@ -868,7 +945,7 @@ module NFTMarket {
         let platform_fee_token = Account::withdraw<PayToken>(account, platform_fee);
         Account::deposit<PayToken>(NFT_MARKET_ADDRESS, platform_fee_token);
 
-        let surplus_amount = selling_price - creator_fee - creator_fee;
+        let surplus_amount = selling_price - creator_fee - platform_fee;
         let surplus_amount_token = Account::withdraw<PayToken>(account, surplus_amount);
         Account::deposit<PayToken>(nft_sell_info.seller, surplus_amount_token);
 
@@ -879,21 +956,25 @@ module NFTMarket {
         NFTGallery::accept<NFTMeta, NFTBody>(account);
         // nft transer Own
         NFTGallery::deposit<NFTMeta, NFTBody>(account, nft);
-        // give back bid token to bider
+        // give back bid token to bidder
         let bid_price = Token::value<PayToken>(&nft_sell_info.bid_tokens);
         if (bid_price > 0u128) {
             let withdraw_bid_token = Token::withdraw<PayToken>(&mut nft_sell_info.bid_tokens, bid_price);
-            Account::deposit<PayToken>(nft_sell_info.bider, withdraw_bid_token);
+            Account::deposit<PayToken>(nft_sell_info.bidder, withdraw_bid_token);
         };
 
         //send NFTSellEvent event
-        Event::emit_event<NFTBuyEvent<NFTMeta, NFTBody>>(&mut nft_token.buy_events,
+        Event::emit_event(&mut nft_token.buy_events,
             NFTBuyEvent {
                 seller: nft_sell_info.seller,
                 id: nft_sell_info.id,
                 pay_token_code: Token::token_code<PayToken>(),
                 final_price: selling_price,
                 buyer: user_address,
+                prev_bid_price: bid_price,
+                prev_bidder: nft_sell_info.bidder,
+                creator_fee: creator_fee,
+                platform_fee: platform_fee,
             },
         );
         let NFTSellInfo<NFTMeta, NFTBody, PayToken> {
@@ -902,7 +983,7 @@ module NFTMarket {
             id: _,
             selling_price: _,
             bid_tokens,
-            bider: _,
+            bidder: _,
         } = nft_sell_info;
         Token::destroy_zero(bid_tokens);
         Option::destroy_none(nft);
@@ -988,7 +1069,7 @@ module NFTMarket {
         let NFTBuyBackInfo { id: _, pay_tokens: payTokens } = pop_ntf_buy_back_info_by_id<NFTMeta, NFTBody, PayToken>(&mut buyBackList.items, id);
 
         //send NFTBuyBackSellEvent event
-        Event::emit_event<NFTBuyBackSellEvent<NFTMeta, NFTBody>>(&mut buyBackList.sell_events,
+        Event::emit_event(&mut buyBackList.sell_events,
             NFTBuyBackSellEvent {
                 seller: sender_address,
                 id,
