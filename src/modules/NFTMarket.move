@@ -896,7 +896,7 @@ module NFTMarket {
                 pay_token_code: Token::token_code<PayToken>(),
                 selling_price: nft_sell_info.selling_price,
                 final_price: bid_tokens,
-                bidder: user_address,
+                bidder: nft_sell_info.bidder,
                 creator_fee: creator_fee,
                 platform_fee: platform_fee,
             },
