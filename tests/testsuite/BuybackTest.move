@@ -5,48 +5,15 @@ address kiko = {{kiko}};
 script {
     use 0x111::KikoCat01;
 
-    fun init(sender: signer) {
-        KikoCat01::init(sender, b"kiko cat", b"abcdefg", b"this is a cat");
-    }
-}
-// check: EXECUTED
-
-//! new-transaction
-//! sender: kiko
-address kiko = {{kiko}};
-script {
-    use 0x111::KikoCat01;
-
-    fun init(sender: signer) {
-        KikoCat01::mint(
-            sender,
-            b"kiko cat",
-            b"abcdefg",
-            b"this is a cat",
-            b"Red",
-            b"Gray",
-            b"Blue Sky",
-            b"Bored",
-            b"Banana",
-            b"Mask",
-            b"Glasses",
+    fun mint_nft(sender: signer) {
+        KikoCat01::f_init(&sender, b"kiko cat", b"abcdefg", b"this is a cat");
+        KikoCat01::f_mint(&sender, b"kiko cat", b"abcdefg", b"this is a cat", b"Red", b"Gray", b"Blue Sky",
+            b"Bored", b"Banana", b"Mask", b"Glasses",
         );
+        KikoCat01::f_open_box(&sender);
     }
 }
 // check: EXECUTED
-
-//! new-transaction
-//! sender: kiko
-address kiko = {{kiko}};
-script {
-    use 0x111::KikoCat01;
-
-    fun init(sender: signer) {
-        KikoCat01::open_box(sender);
-    }
-}
-// check: EXECUTED
-
 
 //! new-transaction
 //! account: alice
@@ -59,24 +26,10 @@ script {
 
     fun init_buy_back_list(sender: signer) {
         NFTMarket::init_buy_back_list<KikoCat01::KikoCatMeta, KikoCat01::KikoCatBody, STC::STC>(&sender);
-    }
-}
-// check: EXECUTED
-
-
-//! new-transaction
-//! sender: admin
-script {
-    use 0x1::STC;
-    use 0x222::NFTMarket;
-    use 0x111::KikoCat01;
-
-    fun nft_buy_back(sender: signer) {
         NFTMarket::nft_buy_back<KikoCat01::KikoCatMeta, KikoCat01::KikoCatBody, STC::STC>(&sender, 1u64, 12u128);
     }
 }
 // check: EXECUTED
-
 
 //! new-transaction
 //! sender: kiko

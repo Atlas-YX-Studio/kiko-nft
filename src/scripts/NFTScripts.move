@@ -60,6 +60,14 @@ module NFTScripts {
         NFTMarket::nft_sell<NFTMeta, NFTBody, PayToken>(&account, id, selling_price);
     }
 
+    public(script) fun nft_change_price<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(
+        account: signer,
+        id: u64,
+        selling_price: u128
+    ) {
+        NFTMarket::nft_change_price<NFTMeta, NFTBody, PayToken>(&account, id, selling_price);
+    }
+
     // NFT offline
     public(script) fun nft_offline<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(
         account: signer,
@@ -72,9 +80,9 @@ module NFTScripts {
     public(script) fun nft_bid<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(
         account: signer,
         id: u64,
-        price: u128
+        bid_price: u128
     ) {
-        NFTMarket::nft_bid<NFTMeta, NFTBody, PayToken>(&account, id, price);
+        NFTMarket::nft_bid<NFTMeta, NFTBody, PayToken>(&account, id, bid_price);
     }
 
     // NFT accept bid
@@ -97,9 +105,18 @@ module NFTScripts {
     //box sell
     public(script) fun box_sell<BoxToken: store, PayToken: store>(
         seller: signer,
-        sell_price: u128
+        selling_price: u128
     ) {
-        NFTMarket::box_sell<BoxToken, PayToken>(&seller, sell_price);
+        NFTMarket::box_sell<BoxToken, PayToken>(&seller, selling_price);
+    }
+
+    //box change price
+    public(script) fun box_change_price<BoxToken: store, PayToken: store>(
+        seller: signer,
+        id: u128,
+        selling_price: u128
+    ) {
+        NFTMarket::box_change_price<BoxToken, PayToken>(&seller, id, selling_price);
     }
 
     //box sell
@@ -118,13 +135,13 @@ module NFTScripts {
         NFTMarket::box_accept_bid<BoxToken, PayToken>(&seller, id);
     }
 
-    //box offer price
+    //box bid price
     public(script) fun box_bid<BoxToken: store, PayToken: store>(
         buyer: signer,
         id: u128,
-        offer_price: u128
+        bid_price: u128
     ) {
-        NFTMarket::box_bid<BoxToken, PayToken>(&buyer, id, offer_price);
+        NFTMarket::box_bid<BoxToken, PayToken>(&buyer, id, bid_price);
     }
 
     //box buy

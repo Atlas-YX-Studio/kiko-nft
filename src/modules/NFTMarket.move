@@ -20,12 +20,13 @@ module NFTMarket {
     const INSUFFICIENT_BALANCE: u64 = 200004;
     const ID_NOT_EXIST: u64 = 200005;
     const BID_FAILED: u64 = 200006;
-    const NFTSELLINFO_NOT_EXISTS: u64 = 200007;
+    const NFT_SELL_INFO_NOT_EXISTS: u64 = 200007;
     const EXCESSIVE_FEE_RATE: u64 = 200008;
     const BOX_SELLING_NOT_EXIST: u64 = 200009;
     const BOX_SELLING_IS_EMPTY: u64 = 200010;
     const BOX_SELLING_PRICE_SMALL: u64 = 200011;
     const BOX_SELLING_INDEX_OUT_BOUNDS: u64 = 200012;
+    const PRICE_TOO_LOW: u64 = 200013;
 
     // ******************** Config ********************
     struct Config has key, store {
@@ -143,6 +144,8 @@ module NFTMarket {
     ) acquires BoxOffering {
         let sender_address = Signer::address_of(sender);
         assert(sender_address == NFT_MARKET_ADDRESS, PERMISSION_DENIED);
+        assert(selling_price > 0, PRICE_TOO_LOW);
+
         // check exists
         if (!exists<BoxOffering<BoxToken, PayToken>>(sender_address)) {
             move_to(sender, BoxOffering<BoxToken, PayToken> {
@@ -245,7 +248,7 @@ module NFTMarket {
         // selling price
         before_price: u128,
         after_price: u128,
-        // buyer address
+        // bidder address
         bidder: address,
         // bid price, lower than selling price
         bid_price: u128,
@@ -338,49 +341,53 @@ module NFTMarket {
     }
 
     // box sell
-    public fun box_sell<BoxToken: store, PayToken: store>(seller: &signer, sell_price: u128) acquires BoxSelling {
+    public fun box_sell<BoxToken: store, PayToken: store>(seller: &signer, selling_price: u128) acquires BoxSelling {
         assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
+        assert(selling_price > 0, PRICE_TOO_LOW);
+
         let seller_address = Signer::address_of(seller);
 
-        let box_sellings = borrow_global_mut<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
-        box_sellings.last_id = box_sellings.last_id + 1;
+        let box_selling = borrow_global_mut<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
+        box_selling.last_id = box_selling.last_id + 1;
         let withdraw_box_token = Account::withdraw<BoxToken>(seller, 1);
         let new_box = BoxSellInfo<BoxToken, PayToken> {
-            id: box_sellings.last_id,
+            id: box_selling.last_id,
             seller: seller_address,
             box_tokens: withdraw_box_token,
-            selling_price: sell_price,
+            selling_price: selling_price,
             bid_tokens: Token::zero<PayToken>(),
             bidder: @0x1,
         };
-        Vector::push_back(&mut box_sellings.items, new_box);
+        Vector::push_back(&mut box_selling.items, new_box);
         // accept PayToken
         if (!Account::is_accepts_token<PayToken>(seller_address)){
             Account::do_accept_token<PayToken>(seller);
         };
 
         Event::emit_event(
-            &mut box_sellings.sell_events,
+            &mut box_selling.sell_events,
             BoxSellEvent {
-                id: box_sellings.last_id,
+                id: box_selling.last_id,
                 seller: seller_address,
                 box_token_code: Token::token_code<BoxToken>(),
                 pay_token_code: Token::token_code<PayToken>(),
                 quantity: 1,
-                selling_price: sell_price,
+                selling_price: selling_price,
             }
         );
     }
 
-    // box offline
-    public fun box_offline<BoxToken: store, PayToken: store>(seller: &signer, id: u128) acquires BoxSelling {
+    // box change price
+    public fun box_change_price<BoxToken: store, PayToken: store>(seller: &signer, id: u128, selling_price: u128) acquires BoxSelling {
         assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
+        assert(selling_price > 0, PRICE_TOO_LOW);
+
         // find box
-        let box_sellings = borrow_global_mut<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
-        let len = Vector::length(&box_sellings.items);
+        let box_selling = borrow_global_mut<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
+        let len = Vector::length(&box_selling.items);
         assert(len > 0, BOX_SELLING_IS_EMPTY);
         let seller_address = Signer::address_of(seller);
-        let box_sell_info = Vector::borrow_mut(&mut box_sellings.items, 0);
+        let box_sell_info = Vector::borrow_mut(&mut box_selling.items, 0);
         let k = 0;
         while ( k < len) {
             if (box_sell_info.id == id) {
@@ -388,7 +395,52 @@ module NFTMarket {
             };
             k = k + 1;
             assert(k < len, BOX_SELLING_INDEX_OUT_BOUNDS);
-            box_sell_info = Vector::borrow_mut(&mut box_sellings.items, k);
+            box_sell_info = Vector::borrow_mut(&mut box_selling.items, k);
+        };
+        // check seller
+        assert(seller_address == box_sell_info.seller, PERMISSION_DENIED);
+
+        // check higher than bid price
+        let bid_price = Token::value<PayToken>(&box_sell_info.bid_tokens);
+        if (bid_price > 0) {
+            assert(selling_price > bid_price, PRICE_TOO_LOW);
+        };
+        // change price
+        let before_price = box_sell_info.selling_price;
+        box_sell_info.selling_price = selling_price;
+        Event::emit_event(
+            &mut box_selling.change_price_events,
+            BoxChangePriceEvent {
+                id: box_sell_info.id,
+                seller: seller_address,
+                box_token_code: Token::token_code<BoxToken>(),
+                pay_token_code: Token::token_code<PayToken>(),
+                quantity: 1,
+                before_price: before_price,
+                after_price: selling_price,
+                bidder: box_sell_info.bidder,
+                bid_price: bid_price,
+            }
+        );
+    }
+
+        // box offline
+    public fun box_offline<BoxToken: store, PayToken: store>(seller: &signer, id: u128) acquires BoxSelling {
+        assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
+        // find box
+        let box_selling = borrow_global_mut<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
+        let len = Vector::length(&box_selling.items);
+        assert(len > 0, BOX_SELLING_IS_EMPTY);
+        let seller_address = Signer::address_of(seller);
+        let box_sell_info = Vector::borrow_mut(&mut box_selling.items, 0);
+        let k = 0;
+        while ( k < len) {
+            if (box_sell_info.id == id) {
+                break
+            };
+            k = k + 1;
+            assert(k < len, BOX_SELLING_INDEX_OUT_BOUNDS);
+            box_sell_info = Vector::borrow_mut(&mut box_selling.items, k);
         };
         // check seller
         assert(seller_address == box_sell_info.seller, PERMISSION_DENIED);
@@ -404,7 +456,7 @@ module NFTMarket {
         Account::deposit(box_sell_info.seller, box_tokens);
         // emit event
         Event::emit_event(
-            &mut box_sellings.offline_events,
+            &mut box_selling.offline_events,
             BoxOfflineEvent {
                 id: box_sell_info.id,
                 seller: box_sell_info.seller,
@@ -417,7 +469,7 @@ module NFTMarket {
             }
         );
         // destory
-        let remove_box_sell_info = Vector::remove<BoxSellInfo<BoxToken, PayToken>>(&mut box_sellings.items, k);
+        let remove_box_sell_info = Vector::remove<BoxSellInfo<BoxToken, PayToken>>(&mut box_selling.items, k);
         let BoxSellInfo<BoxToken, PayToken> {
             id: _,
             seller: _,
@@ -434,13 +486,13 @@ module NFTMarket {
     public fun box_accept_bid<BoxToken: store, PayToken: store>(seller: &signer, id: u128) acquires BoxSelling, Config {
         assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
 
-        let box_sellings = borrow_global_mut<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
-        let len = Vector::length(&box_sellings.items);
+        let box_selling = borrow_global_mut<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
+        let len = Vector::length(&box_selling.items);
         assert(len > 0, BOX_SELLING_IS_EMPTY);
 
         let seller_address = Signer::address_of(seller);
 
-        let box_sell_info = Vector::borrow_mut(&mut box_sellings.items, 0);
+        let box_sell_info = Vector::borrow_mut(&mut box_selling.items, 0);
         let k = 0;
         while ( k < len) {
             if (box_sell_info.id == id) {
@@ -448,8 +500,10 @@ module NFTMarket {
             };
             k = k + 1;
             assert(k < len, BOX_SELLING_INDEX_OUT_BOUNDS);
-            box_sell_info = Vector::borrow_mut(&mut box_sellings.items, k);
+            box_sell_info = Vector::borrow_mut(&mut box_selling.items, k);
         };
+        // check seller
+        assert(seller_address == box_sell_info.seller, PERMISSION_DENIED);
 
         let withdraw_box_token = Token::withdraw<BoxToken>(&mut box_sell_info.box_tokens, 1);
         Account::deposit(box_sell_info.bidder, withdraw_box_token);
@@ -459,7 +513,7 @@ module NFTMarket {
         let (creator_fee, platform_fee) = get_fee(bid_amount);
 
         let creator_fee_token = Token::withdraw<PayToken>(&mut box_sell_info.bid_tokens, creator_fee);
-        Account::deposit<PayToken>(box_sellings.creator, creator_fee_token);
+        Account::deposit<PayToken>(box_selling.creator, creator_fee_token);
 
         let platform_fee_token = Token::withdraw<PayToken>(&mut box_sell_info.bid_tokens, platform_fee);
         Account::deposit<PayToken>(NFT_MARKET_ADDRESS, platform_fee_token);
@@ -469,7 +523,7 @@ module NFTMarket {
         Account::deposit(seller_address, withdraw_bid_token);
 
         Event::emit_event(
-            &mut box_sellings.accept_bid_events,
+            &mut box_selling.accept_bid_events,
             BoxAcceptBidEvent {
                 id: box_sell_info.id,
                 seller: box_sell_info.seller,
@@ -484,7 +538,7 @@ module NFTMarket {
             }
         );
 
-        let remove_box_sell_info = Vector::remove<BoxSellInfo<BoxToken, PayToken>>(&mut box_sellings.items, k);
+        let remove_box_sell_info = Vector::remove<BoxSellInfo<BoxToken, PayToken>>(&mut box_selling.items, k);
         let BoxSellInfo<BoxToken, PayToken> {
             id: _,
             seller: _,
@@ -497,17 +551,18 @@ module NFTMarket {
         Token::destroy_zero(bid_tokens);
     }
 
-    // box offer price
-    public fun box_bid<BoxToken: store, PayToken: store>(buyer: &signer, id: u128, offer_price: u128) acquires BoxSelling, Config {
+    // box bid
+    public fun box_bid<BoxToken: store, PayToken: store>(buyer: &signer, id: u128, price: u128) acquires BoxSelling, Config {
         assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
+        assert(price > 0, PRICE_TOO_LOW);
 
-        let box_sellings = borrow_global_mut<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
-        let len = Vector::length(&box_sellings.items);
+        let box_selling = borrow_global_mut<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
+        let len = Vector::length(&box_selling.items);
         assert(len > 0, BOX_SELLING_IS_EMPTY);
 
         let buyer_address = Signer::address_of(buyer);
 
-        let box_sell_info = Vector::borrow_mut(&mut box_sellings.items, 0);
+        let box_sell_info = Vector::borrow_mut(&mut box_selling.items, 0);
         let k = 0;
         while ( k < len) {
             if (box_sell_info.id == id) {
@@ -515,10 +570,10 @@ module NFTMarket {
             };
             k = k + 1;
             assert(k < len, BOX_SELLING_INDEX_OUT_BOUNDS);
-            box_sell_info = Vector::borrow_mut(&mut box_sellings.items, k);
+            box_sell_info = Vector::borrow_mut(&mut box_selling.items, k);
         };
 
-        if (offer_price >= box_sell_info.selling_price) {
+        if (price >= box_sell_info.selling_price) {
             //buy
             box_buy<BoxToken, PayToken>(buyer, id);
         } else {
@@ -527,14 +582,14 @@ module NFTMarket {
             //There is already a quotation
             if (bid_price > 0u128) {
                 //The latest quotation is less than or equal to the previous highest quotation
-                assert(offer_price > bid_price, BOX_SELLING_PRICE_SMALL);
+                assert(price > bid_price, BOX_SELLING_PRICE_SMALL);
 
                 //If the latest quotation is greater than the previous highest quotation, the previous users will be returned
                 let withdraw_bid_token = Token::withdraw<PayToken>(&mut box_sell_info.bid_tokens, bid_price);
                 Account::deposit<PayToken>(box_sell_info.bidder, withdraw_bid_token);
             };
 
-            let withdraw_buy_box_token = Account::withdraw<PayToken>(buyer, offer_price);
+            let withdraw_buy_box_token = Account::withdraw<PayToken>(buyer, price);
             Token::deposit(&mut box_sell_info.bid_tokens, withdraw_buy_box_token);
 
             box_sell_info.bidder = buyer_address;
@@ -544,7 +599,7 @@ module NFTMarket {
             };
 
             Event::emit_event(
-                &mut box_sellings.bid_events,
+                &mut box_selling.bid_events,
                 BoxBidEvent {
                     id: box_sell_info.id,
                     seller: box_sell_info.seller,
@@ -553,7 +608,7 @@ module NFTMarket {
                     quantity: 1,
                     selling_price: box_sell_info.selling_price,
                     bidder: buyer_address,
-                    bid_price: offer_price,
+                    bid_price: price,
                     prev_bidder: prev_bidder,
                     prev_bid_price: bid_price,
                 }
@@ -565,13 +620,13 @@ module NFTMarket {
     public fun box_buy<BoxToken: store, PayToken: store>(buyer: &signer, id: u128) acquires BoxSelling, Config {
         assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
 
-        let box_sellings = borrow_global_mut<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
-        let len = Vector::length(&box_sellings.items);
+        let box_selling = borrow_global_mut<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
+        let len = Vector::length(&box_selling.items);
         assert(len > 0, BOX_SELLING_IS_EMPTY);
 
         let buyer_address = Signer::address_of(buyer);
 
-        let box_sell_info = Vector::borrow_mut(&mut box_sellings.items, 0);
+        let box_sell_info = Vector::borrow_mut(&mut box_selling.items, 0);
         let k = 0;
         while ( k < len) {
             if (box_sell_info.id == id) {
@@ -579,10 +634,10 @@ module NFTMarket {
             };
             k = k + 1;
             assert(k < len, BOX_SELLING_INDEX_OUT_BOUNDS);
-            box_sell_info = Vector::borrow_mut(&mut box_sellings.items, k);
+            box_sell_info = Vector::borrow_mut(&mut box_selling.items, k);
         };
         let seller_address = box_sell_info.seller;
-        let sell_price = box_sell_info.selling_price;
+        let selling_price = box_sell_info.selling_price;
 
         let bid_price = Token::value<PayToken>(&box_sell_info.bid_tokens);
         //There is already a quotation
@@ -595,20 +650,20 @@ module NFTMarket {
         let withdraw_box_token = Token::withdraw<BoxToken>(&mut box_sell_info.box_tokens, 1);
         Account::deposit_to_self(buyer, withdraw_box_token);
 
-        let (creator_fee, platform_fee) = get_fee(sell_price);
+        let (creator_fee, platform_fee) = get_fee(selling_price);
 
         let creator_fee_token = Account::withdraw<PayToken>(buyer, creator_fee);
-        Account::deposit<PayToken>(box_sellings.creator, creator_fee_token);
+        Account::deposit<PayToken>(box_selling.creator, creator_fee_token);
 
         let platform_fee_token = Account::withdraw<PayToken>(buyer, platform_fee);
         Account::deposit<PayToken>(NFT_MARKET_ADDRESS, platform_fee_token);
 
-        let surplus_amount = sell_price - creator_fee - platform_fee;
+        let surplus_amount = selling_price - creator_fee - platform_fee;
         let withdraw_buy_box_token = Account::withdraw<PayToken>(buyer, surplus_amount);
         Account::deposit(seller_address, withdraw_buy_box_token);
 
         Event::emit_event(
-            &mut box_sellings.buy_events,
+            &mut box_selling.buy_events,
             BoxBuyEvent {
                 id: box_sell_info.id,
                 seller: box_sell_info.seller,
@@ -616,7 +671,7 @@ module NFTMarket {
                 pay_token_code: Token::token_code<PayToken>(),
                 quantity: 1,
                 buyer: buyer_address,
-                final_price: box_sell_info.selling_price,
+                final_price: selling_price,
                 prev_bidder: box_sell_info.bidder,
                 prev_bid_price: bid_price,
                 creator_fee: creator_fee,
@@ -624,7 +679,7 @@ module NFTMarket {
             }
         );
 
-        let remove_box_sell_info = Vector::remove<BoxSellInfo<BoxToken, PayToken>>(&mut box_sellings.items, k);
+        let remove_box_sell_info = Vector::remove<BoxSellInfo<BoxToken, PayToken>>(&mut box_selling.items, k);
         let BoxSellInfo<BoxToken, PayToken> {
             id: _,
             seller: _,
@@ -738,9 +793,11 @@ module NFTMarket {
         id: u64,
         selling_price: u128
     ) acquires NFTSelling {
-        let nft_selling = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
         // NFTSelling exists
         assert(exists<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), OFFERING_NOT_EXISTS);
+        assert(selling_price > 0, PRICE_TOO_LOW);
+
+        let nft_selling = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
         let owner_address = Signer::address_of(account);
         // Withdraw one NFT token from your account
         let option_nft = NFTGallery::withdraw<NFTMeta, NFTBody>(account, id);
@@ -765,6 +822,54 @@ module NFTMarket {
                 id: id,
                 pay_token_code: Token::token_code<PayToken>(),
                 selling_price: selling_price,
+            },
+        );
+    }
+
+    // NFT change price
+    public fun nft_change_price<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(
+        account: &signer,
+        id: u64,
+        selling_price: u128
+    ) acquires NFTSelling {
+        // NFTSelling exists
+        assert(exists<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), OFFERING_NOT_EXISTS);
+        assert(selling_price > 0, PRICE_TOO_LOW);
+        // get sell info
+        let nft_selling = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
+        let len = Vector::length(&nft_selling.items);
+        assert(len > 0, NFT_SELL_INFO_NOT_EXISTS);
+        let nft_sell_info = Vector::borrow_mut(&mut nft_selling.items, 0);
+        let k = 0;
+        while (k < len) {
+            if (nft_sell_info.id == id) {
+                break
+            };
+            k = k + 1;
+            assert(k < len, ID_NOT_EXIST);
+            nft_sell_info = Vector::borrow_mut(&mut nft_selling.items, k);
+        };
+
+        // check seller
+        let user_address = Signer::address_of(account);
+        assert(user_address == nft_sell_info.seller, PERMISSION_DENIED);
+        // check higher than bid price
+        let bid_price = Token::value<PayToken>(&nft_sell_info.bid_tokens);
+        if (bid_price > 0) {
+            assert(selling_price > bid_price, PRICE_TOO_LOW);
+        };
+        // change price
+        let before_price = nft_sell_info.selling_price;
+        nft_sell_info.selling_price = selling_price;
+        Event::emit_event(&mut nft_selling.change_price_events,
+            NFTChangePriceEvent {
+                seller: nft_sell_info.seller,
+                id: nft_sell_info.id,
+                pay_token_code: Token::token_code<PayToken>(),
+                before_price: before_price,
+                after_price: selling_price,
+                bid_price: bid_price,
+                bidder: nft_sell_info.bidder,
             },
         );
     }
@@ -819,8 +924,10 @@ module NFTMarket {
         price: u128
     ) acquires NFTSelling, Config {
         assert(exists<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), OFFERING_NOT_EXISTS);
-        let nft_token = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
-        let nft_sell_info = find_ntf_sell_info_by_id<NFTMeta, NFTBody, PayToken>(&mut nft_token.items, id);
+        assert(price > 0, PRICE_TOO_LOW);
+
+        let nft_selling = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
+        let nft_sell_info = find_ntf_sell_info_by_id<NFTMeta, NFTBody, PayToken>(&mut nft_selling.items, id);
         //bidder address
         let user_address = Signer::address_of(account);
         if (price >= nft_sell_info.selling_price) {
@@ -845,7 +952,7 @@ module NFTMarket {
             // accept
             NFTGallery::accept<NFTMeta, NFTBody>(account);
             //send NFTBidEvent event
-            Event::emit_event(&mut nft_token.bid_events,
+            Event::emit_event(&mut nft_selling.bid_events,
                 NFTBidEvent {
                     seller: nft_sell_info.seller,
                     id: id,
@@ -858,7 +965,7 @@ module NFTMarket {
                 }
             );
             // nft_sell_info add Vector
-            Vector::push_back(&mut nft_token.items, nft_sell_info)
+            Vector::push_back(&mut nft_selling.items, nft_sell_info)
         };
     }
 
@@ -870,6 +977,9 @@ module NFTMarket {
         let user_address = Signer::address_of(account);
         let nft_selling = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
         let nft_sell_info = find_ntf_sell_info_by_id<NFTMeta, NFTBody, PayToken>(&mut nft_selling.items, id);
+        // check seller
+        assert(user_address == nft_sell_info.seller, PERMISSION_DENIED);
+
         let bid_tokens = Token::value(&nft_sell_info.bid_tokens);
         let nft = Option::extract(&mut nft_sell_info.nft);
 
@@ -919,8 +1029,8 @@ module NFTMarket {
         account: &signer,
         id: u64
     ) acquires NFTSelling, Config {
-        let nft_token = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
-        let nft_sell_info = find_ntf_sell_info_by_id<NFTMeta, NFTBody, PayToken>(&mut nft_token.items, id);
+        let nft_selling = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
+        let nft_sell_info = find_ntf_sell_info_by_id<NFTMeta, NFTBody, PayToken>(&mut nft_selling.items, id);
         f_nft_buy<NFTMeta, NFTBody, PayToken>(account, nft_sell_info);
     }
 
@@ -930,7 +1040,7 @@ module NFTMarket {
         nft_sell_info: NFTSellInfo<NFTMeta, NFTBody, PayToken>,
     ) acquires NFTSelling, Config {
         let user_address = Signer::address_of(account);
-        let nft_token = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
+        let nft_selling = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
         let selling_price = nft_sell_info.selling_price;
         let token_balance = Account::balance<PayToken>(user_address);
         assert(token_balance >= selling_price, INSUFFICIENT_BALANCE);
@@ -964,7 +1074,7 @@ module NFTMarket {
         };
 
         //send NFTSellEvent event
-        Event::emit_event(&mut nft_token.buy_events,
+        Event::emit_event(&mut nft_selling.buy_events,
             NFTBuyEvent {
                 seller: nft_sell_info.seller,
                 id: nft_sell_info.id,

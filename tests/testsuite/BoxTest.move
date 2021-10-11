@@ -251,6 +251,20 @@ address kiko = {{kiko}};
 script {
     use dummy::Dummy::{ETH, USDT};
     use 0x222::NFTMarket;
+    const MULTIPLE: u128 = 10000;
+
+    fun box_bid(sender: signer) {
+        NFTMarket::box_change_price<ETH, USDT>(&sender, 4, 2 * MULTIPLE);
+    }
+}
+// check: EXECUTED
+
+//! new-transaction
+//! sender: kiko
+address kiko = {{kiko}};
+script {
+    use dummy::Dummy::{ETH, USDT};
+    use 0x222::NFTMarket;
 
     fun box_bid(sender: signer) {
         NFTMarket::box_offline<ETH, USDT>(&sender, 4);

@@ -5,68 +5,15 @@ address kiko = {{kiko}};
 script {
     use 0x111::KikoCat01;
 
-    fun init(sender: signer) {
-        KikoCat01::init(sender, b"kiko cat", b"abcdefg", b"this is a cat");
-    }
-}
-// check: EXECUTED
-
-//! new-transaction
-//! sender: kiko
-address kiko = {{kiko}};
-script {
-    use 0x111::KikoCat01;
-
-    fun init(sender: signer) {
-        KikoCat01::mint(
-            sender,
-            b"kiko cat",
-            b"abcdefg",
-            b"this is a cat",
-            b"Red",
-            b"Gray",
-            b"Blue Sky",
-            b"Bored",
-            b"Banana",
-            b"Mask",
-            b"Glasses",
+    fun mint_nft(sender: signer) {
+        KikoCat01::f_init(&sender, b"kiko cat", b"abcdefg", b"this is a cat");
+        KikoCat01::f_mint(&sender, b"kiko cat", b"abcdefg", b"this is a cat", b"Red", b"Gray", b"Blue Sky",
+            b"Bored", b"Banana", b"Mask", b"Glasses",
         );
-    }
-}
-// check: EXECUTED
-
-//! new-transaction
-//! sender: kiko
-address kiko = {{kiko}};
-script {
-    use 0x111::KikoCat01;
-
-    fun init(sender: signer) {
-        KikoCat01::mint(
-            sender,
-            b"kiko cat",
-            b"abcdefg",
-            b"this is a cat",
-            b"Red",
-            b"Gray",
-            b"Blue Sky",
-            b"Bored",
-            b"Banana",
-            b"Mask",
-            b"Glasses",
+        KikoCat01::f_mint(&sender, b"kiko cat", b"abcdefg", b"this is a cat", b"Red", b"Gray", b"Blue Sky",
+            b"Bored", b"Banana", b"Mask", b"Glasses",
         );
-    }
-}
-// check: EXECUTED
-
-//! new-transaction
-//! sender: kiko
-address kiko = {{kiko}};
-script {
-    use 0x111::KikoCat01;
-
-    fun init(sender: signer) {
-        KikoCat01::open_box(sender);
+        KikoCat01::f_open_box(&sender);
     }
 }
 // check: EXECUTED
@@ -106,12 +53,12 @@ address platform = {{platform}};
 script {
     use 0x1::STC::STC;
     use 0x111::KikoCat01::{KikoCatMeta, KikoCatBody, KikoCatBox};
-    use 0x333::NFTScripts;
+    use 0x222::NFTMarket;
 
     const DECIMAL: u128 = 1000000000;
 
     fun box_initial_offering(sender: signer) {
-        NFTScripts::box_initial_offering<KikoCatMeta, KikoCatBody, KikoCatBox, STC>(sender, 1, 10 * DECIMAL, 0, @platform);
+        NFTMarket::box_initial_offering<KikoCatMeta, KikoCatBody, KikoCatBox, STC>(&sender, 1, 10 * DECIMAL, 0, @platform);
     }
 }
 // check: EXECUTED
@@ -122,23 +69,12 @@ script {
 address alice = {{alice}};
 script {
     use 0x1::STC::STC;
-    use 0x111::KikoCat01::{KikoCatBox};
-    use 0x333::NFTScripts;
+    use 0x111::KikoCat01::{Self, KikoCatBox};
+    use 0x222::NFTMarket;
 
     fun box_initial_offering(sender: signer) {
-        NFTScripts::box_buy_from_offering<KikoCatBox, STC>(sender, 1);
-    }
-}
-// check: EXECUTED
-
-//! new-transaction
-//! sender: alice
-address alice = {{alice}};
-script {
-    use 0x111::KikoCat01;
-
-    fun init(sender: signer) {
-        KikoCat01::open_box(sender);
+        NFTMarket::box_buy_from_offering<KikoCatBox, STC>(&sender, 1);
+        KikoCat01::f_open_box(&sender);
     }
 }
 // check: EXECUTED
