@@ -1,5 +1,5 @@
-address 0x111 {
-module KikoCat01 {
+address 0x69F1E543A3BeF043B63BEd825fcd2cf6 {
+module KikoCat11 {
     use 0x1::Signer;
     use 0x1::Event;
     use 0x1::Block;
@@ -9,7 +9,7 @@ module KikoCat01 {
     use 0x1::NFT::{Self, NFT};
     use 0x1::NFTGallery;
 
-    const NFT_ADDRESS: address = @0x111;
+    const NFT_ADDRESS: address = @0x69F1E543A3BeF043B63BEd825fcd2cf6;
 
     const PERMISSION_DENIED: u64 = 100001;
 

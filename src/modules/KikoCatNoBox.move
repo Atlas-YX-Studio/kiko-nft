@@ -1,11 +1,13 @@
-address 0x111 {
-module KikoCatNoBox {
+address 0x69F1E543A3BeF043B63BEd825fcd2cf6 {
+module KikoCatNoBox01 {
     use 0x1::Signer;
     use 0x1::Event;
+    use 0x1::Token;
+    use 0x1::Account;
     use 0x1::NFT;
     use 0x1::NFTGallery;
 
-    const NFT_ADDRESS: address = @0x111;
+    const NFT_ADDRESS: address = @0x69F1E543A3BeF043B63BEd825fcd2cf6;
 
     const PERMISSION_DENIED: u64 = 100001;
 
@@ -203,6 +205,39 @@ module KikoCatNoBox {
         }
     }
 
+    // ******************** NFT Box ********************
+    // box
+    struct KikoCatBox has copy, drop, store {}
+
+    const PRECISION: u8 = 0;
+
+    struct KikoCatBoxCapability has key, store {
+        mint: Token::MintCapability<KikoCatBox>,
+        burn: Token::BurnCapability<KikoCatBox>,
+    }
+
+    // init box
+    fun init_box(sender: &signer) {
+        Token::register_token<KikoCatBox>(sender, PRECISION);
+        let mint_cap = Token::remove_mint_capability<KikoCatBox>(sender);
+        let burn_cap = Token::remove_burn_capability<KikoCatBox>(sender);
+        move_to(sender, KikoCatBoxCapability { mint: mint_cap, burn: burn_cap });
+    }
+
+    // mint box
+    fun mint_box(sender: &signer, amount: u128)
+    acquires KikoCatBoxCapability {
+        let cap = borrow_global<KikoCatBoxCapability>(NFT_ADDRESS);
+        let token = Token::mint_with_capability<KikoCatBox>(&cap.mint, amount);
+        Account::deposit_to_self(sender, token);
+    }
+
+    fun burn_box(token: Token::Token<KikoCatBox>)
+    acquires KikoCatBoxCapability {
+        let cap = borrow_global<KikoCatBoxCapability>(NFT_ADDRESS);
+        Token::burn_with_capability(&cap.burn, token);
+    }
+
     // ******************** NFT public function ********************
 
     // init nft and box with image
@@ -215,6 +250,7 @@ module KikoCatNoBox {
         assert(Signer::address_of(sender) == NFT_ADDRESS, PERMISSION_DENIED);
         let metadata = NFT::new_meta_with_image(name, image, description);
         init_nft(sender, metadata);
+        init_box(sender);
         init_gallery(sender);
         NFTGallery::accept<KikoCatMeta, KikoCatBody>(sender);
     }
@@ -229,6 +265,7 @@ module KikoCatNoBox {
         assert(Signer::address_of(sender) == NFT_ADDRESS, PERMISSION_DENIED);
         let metadata = NFT::new_meta_with_image_data(name, image_data, description);
         init_nft(sender, metadata);
+        init_box(sender);
         init_gallery(sender);
         NFTGallery::accept<KikoCatMeta, KikoCatBody>(sender);
     }
