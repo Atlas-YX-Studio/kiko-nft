@@ -6,11 +6,11 @@ script {
     use 0x111::KikoCat01;
 
     fun mint_nft(sender: signer) {
-        KikoCat01::f_init(&sender, b"kiko cat", b"abcdefg", b"this is a cat");
-        KikoCat01::f_mint(&sender, b"kiko cat", b"abcdefg", b"this is a cat", b"Red", b"Gray", b"Blue Sky",
+        KikoCat01::f_init_with_image(&sender, b"kiko cat", b"www.baidu.com", b"this is a cat");
+        KikoCat01::f_mint_with_image(&sender, b"kiko cat", b"www.baidu.com", b"this is a cat", b"Red", b"Gray", b"Blue Sky",
             b"Bored", b"Banana", b"Mask", b"Glasses",
         );
-        KikoCat01::f_mint(&sender, b"kiko cat", b"abcdefg", b"this is a cat", b"Red", b"Gray", b"Blue Sky",
+        KikoCat01::f_mint_with_image_data(&sender, b"kiko cat", b"abcdefg", b"this is a cat", b"Red", b"Gray", b"Blue Sky",
             b"Bored", b"Banana", b"Mask", b"Glasses",
         );
         KikoCat01::f_open_box(&sender);

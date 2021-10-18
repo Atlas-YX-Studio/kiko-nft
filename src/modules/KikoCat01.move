@@ -35,14 +35,11 @@ module KikoCat01 {
         mint: NFT::MintCapability<KikoCatMeta>,
     }
 
-    // init nft
+    // init nft with image data
     fun init_nft(
         sender: &signer,
-        name: vector<u8>,
-        image: vector<u8>,
-        description: vector<u8>,
+        metadata: NFT::Metadata,
     ) {
-        let metadata = NFT::new_meta_with_image_data(name, image, description);
         NFT::register<KikoCatMeta, KikoCatTypeInfo>(sender, KikoCatTypeInfo {}, metadata);
         let mint = NFT::remove_mint_capability<KikoCatMeta>(sender);
         move_to(sender, KikoCatNFTCapability { mint });
@@ -51,9 +48,7 @@ module KikoCat01 {
     // mint nft
     fun mint_nft(
         sender: &signer,
-        name: vector<u8>,
-        image: vector<u8>,
-        description: vector<u8>,
+        metadata: NFT::Metadata,
         background: vector<u8>,
         fur: vector<u8>,
         clothes: vector<u8>,
@@ -64,7 +59,6 @@ module KikoCat01 {
     ) acquires KikoCatNFTCapability, KikoCatGallery {
         let sender_address = Signer::address_of(sender);
         let cap = borrow_global_mut<KikoCatNFTCapability>(sender_address);
-        let metadata = NFT::new_meta_with_image_data(name, image, description);
         let nft = NFT::mint_with_cap<KikoCatMeta, KikoCatBody, KikoCatTypeInfo>(
             sender_address,
             &mut cap.mint,
@@ -165,22 +159,38 @@ module KikoCat01 {
 
     // ******************** NFT public function ********************
 
-    // init nft and box
-    public fun f_init(
+    // init nft and box with image
+    public fun f_init_with_image(
         sender: &signer,
         name: vector<u8>,
         image: vector<u8>,
         description: vector<u8>,
     ) {
         assert(Signer::address_of(sender) == NFT_ADDRESS, PERMISSION_DENIED);
-        init_nft(sender, name, image, description);
+        let metadata = NFT::new_meta_with_image(name, image, description);
+        init_nft(sender, metadata);
+        init_box(sender);
+        init_gallery(sender);
+        NFTGallery::accept<KikoCatMeta, KikoCatBody>(sender);
+    }
+
+    // init nft and box with image data
+    public fun f_init_with_image_data(
+        sender: &signer,
+        name: vector<u8>,
+        image_data: vector<u8>,
+        description: vector<u8>,
+    ) {
+        assert(Signer::address_of(sender) == NFT_ADDRESS, PERMISSION_DENIED);
+        let metadata = NFT::new_meta_with_image_data(name, image_data, description);
+        init_nft(sender, metadata);
         init_box(sender);
         init_gallery(sender);
         NFTGallery::accept<KikoCatMeta, KikoCatBody>(sender);
     }
 
     // mint NFT and box
-    public fun f_mint(
+    public fun f_mint_with_image(
         sender: &signer,
         name: vector<u8>,
         image: vector<u8>,
@@ -195,7 +205,29 @@ module KikoCat01 {
     ) acquires KikoCatNFTCapability, KikoCatBoxCapability, KikoCatGallery {
         let sender_address = Signer::address_of(sender);
         assert(sender_address == NFT_ADDRESS, PERMISSION_DENIED);
-        mint_nft(sender, name, image, description, background, fur, clothes, facial_expression, head, accessories, eyes);
+        let metadata = NFT::new_meta_with_image(name, image, description);
+        mint_nft(sender, metadata, background, fur, clothes, facial_expression, head, accessories, eyes);
+        mint_box(sender, 1);
+    }
+
+    // mint NFT and box
+    public fun f_mint_with_image_data(
+        sender: &signer,
+        name: vector<u8>,
+        image_data: vector<u8>,
+        description: vector<u8>,
+        background: vector<u8>,
+        fur: vector<u8>,
+        clothes: vector<u8>,
+        facial_expression: vector<u8>,
+        head: vector<u8>,
+        accessories: vector<u8>,
+        eyes: vector<u8>,
+    ) acquires KikoCatNFTCapability, KikoCatBoxCapability, KikoCatGallery {
+        let sender_address = Signer::address_of(sender);
+        assert(sender_address == NFT_ADDRESS, PERMISSION_DENIED);
+        let metadata = NFT::new_meta_with_image_data(name, image_data, description);
+        mint_nft(sender, metadata, background, fur, clothes, facial_expression, head, accessories, eyes);
         mint_box(sender, 1);
     }
 
@@ -231,16 +263,26 @@ module KikoCat01 {
     }
 
     // ******************** NFT script function ********************
-    public(script) fun init(
+
+    public(script) fun init_with_image(
         sender: signer,
         name: vector<u8>,
         image: vector<u8>,
         description: vector<u8>,
     ) {
-        f_init(&sender, name, image, description);
+        f_init_with_image(&sender, name, image, description);
     }
 
-    public(script) fun mint(
+    public(script) fun init_with_image_data(
+        sender: signer,
+        name: vector<u8>,
+        image_data: vector<u8>,
+        description: vector<u8>,
+    ) {
+        f_init_with_image_data(&sender, name, image_data, description);
+    }
+
+    public(script) fun mint_with_image(
         sender: signer,
         name: vector<u8>,
         image: vector<u8>,
@@ -253,7 +295,23 @@ module KikoCat01 {
         accessories: vector<u8>,
         eyes: vector<u8>,
     ) acquires KikoCatNFTCapability, KikoCatBoxCapability, KikoCatGallery {
-        f_mint(&sender, name, image, description, background, fur, clothes, facial_expression, head, accessories, eyes);
+        f_mint_with_image(&sender, name, image, description, background, fur, clothes, facial_expression, head, accessories, eyes);
+    }
+
+    public(script) fun mint_with_image_data(
+        sender: signer,
+        name: vector<u8>,
+        image_data: vector<u8>,
+        description: vector<u8>,
+        background: vector<u8>,
+        fur: vector<u8>,
+        clothes: vector<u8>,
+        facial_expression: vector<u8>,
+        head: vector<u8>,
+        accessories: vector<u8>,
+        eyes: vector<u8>,
+    ) acquires KikoCatNFTCapability, KikoCatBoxCapability, KikoCatGallery {
+        f_mint_with_image_data(&sender, name, image_data, description, background, fur, clothes, facial_expression, head, accessories, eyes);
     }
 
     public(script) fun open_box(sender: signer) acquires KikoCatBoxCapability, KikoCatGallery {
