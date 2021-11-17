@@ -1,5 +1,5 @@
-address 0x111 {
-module KikoCat01 {
+address 0x8355417c88d969f656935244641256ad {
+module DuneKikoCat {
     use 0x1::Signer;
     use 0x1::Event;
     use 0x1::Block;
@@ -9,7 +9,7 @@ module KikoCat01 {
     use 0x1::NFT::{Self, NFT};
     use 0x1::NFTGallery;
 
-    const NFT_ADDRESS: address = @0x111;
+    const NFT_ADDRESS: address = @0x8355417c88d969f656935244641256ad;
 
     const PERMISSION_DENIED: u64 = 100001;
 

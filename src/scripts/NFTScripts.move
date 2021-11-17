@@ -1,7 +1,7 @@
-address 0x333 {
+address 0x7ed4261b68ddb20158109794bbab3ae7 {
 module NFTScripts {
 
-    use 0x222::NFTMarket;
+    use 0x7ed4261b68ddb20158109794bbab3ae7::NFTMarket;
 
     // ******************** Config ********************
     // init

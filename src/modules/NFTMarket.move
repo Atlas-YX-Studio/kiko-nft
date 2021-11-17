@@ -1,4 +1,4 @@
-address 0x222 {
+address 0x7ed4261b68ddb20158109794bbab3ae7 {
 module NFTMarket {
 
     use 0x1::Event;
@@ -11,7 +11,7 @@ module NFTMarket {
     use 0x1::NFT::{Self, NFT};
     use 0x1::NFTGallery;
 
-    const NFT_MARKET_ADDRESS: address = @0x222;
+    const NFT_MARKET_ADDRESS: address = @0x7ed4261b68ddb20158109794bbab3ae7;
 
     //error
     const PERMISSION_DENIED: u64 = 200001;
