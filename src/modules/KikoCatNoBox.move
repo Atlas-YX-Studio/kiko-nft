@@ -1,12 +1,10 @@
 address 0x111 {
-module KikoCat01 {
+module KikoCatNoBox {
     use 0x1::Signer;
     use 0x1::Event;
-    use 0x1::Block;
-    use 0x1::Vector;
     use 0x1::Token;
     use 0x1::Account;
-    use 0x1::NFT::{Self, NFT};
+    use 0x1::NFT;
     use 0x1::NFTGallery;
 
     const NFT_ADDRESS: address = @0x111;
@@ -175,7 +173,8 @@ module KikoCat01 {
         );
         let gallery = borrow_global_mut<KikoCatGallery>(sender_address);
         let id = NFT::get_id<KikoCatMeta, KikoCatBody>(&nft);
-        Vector::push_back(&mut gallery.items, nft);
+        NFTGallery::deposit(sender, nft);
+
         Event::emit_event<NFTMintEvent<KikoCatMeta, KikoCatBody>>(&mut gallery.nft_mint_events,
             NFTMintEvent {
                 creator: sender_address,
@@ -187,20 +186,12 @@ module KikoCat01 {
     // ******************** NFT Gallery ********************
     // kiko gallery
     struct KikoCatGallery has key, store {
-        items: vector<NFT<KikoCatMeta, KikoCatBody>>,
         nft_mint_events: Event::EventHandle<NFTMintEvent<KikoCatMeta, KikoCatBody>>,
-        box_open_events: Event::EventHandle<BoxOpenEvent<KikoCatMeta, KikoCatBody>>,
     }
 
-    // box open event
+    // nft mint event
     struct NFTMintEvent<NFTMeta: store + drop, NFTBody: store + drop> has drop, store {
         creator: address,
-        id: u64,
-    }
-
-    // box open event
-    struct BoxOpenEvent<NFTMeta: store + drop, NFTBody: store + drop> has drop, store {
-        owner: address,
         id: u64,
     }
 
@@ -208,19 +199,10 @@ module KikoCat01 {
     fun init_gallery(sender: &signer) {
         if (!exists<KikoCatGallery>(Signer::address_of(sender))) {
             let gallery = KikoCatGallery {
-                items: Vector::empty<NFT<KikoCatMeta, KikoCatBody>>(),
                 nft_mint_events: Event::new_event_handle<NFTMintEvent<KikoCatMeta, KikoCatBody>>(sender),
-                box_open_events: Event::new_event_handle<BoxOpenEvent<KikoCatMeta, KikoCatBody>>(sender),
             };
             move_to(sender, gallery);
         }
-    }
-
-    // Count all NFTs assigned to an owner
-    public fun count_of(owner: address): u64
-    acquires KikoCatGallery {
-        let gallery = borrow_global_mut<KikoCatGallery>(owner);
-        Vector::length(&gallery.items)
     }
 
     // ******************** NFT Box ********************
@@ -334,7 +316,7 @@ module KikoCat01 {
         movies: vector<u8>,
         season: vector<u8>,
         outfit: vector<u8>,
-    ) acquires KikoCatNFTCapability, KikoCatBoxCapability, KikoCatGallery {
+    ) acquires KikoCatNFTCapability, KikoCatGallery {
         let sender_address = Signer::address_of(sender);
         assert(sender_address == NFT_ADDRESS, PERMISSION_DENIED);
         let metadata = NFT::new_meta_with_image(name, image, description);
@@ -381,7 +363,6 @@ module KikoCat01 {
             season,
             outfit,
         );
-        mint_box(sender, 1);
     }
 
     // mint NFT and box
@@ -430,7 +411,7 @@ module KikoCat01 {
         movies: vector<u8>,
         season: vector<u8>,
         outfit: vector<u8>,
-    ) acquires KikoCatNFTCapability, KikoCatBoxCapability, KikoCatGallery {
+    ) acquires KikoCatNFTCapability, KikoCatGallery {
         let sender_address = Signer::address_of(sender);
         assert(sender_address == NFT_ADDRESS, PERMISSION_DENIED);
         let metadata = NFT::new_meta_with_image_data(name, image_data, description);
@@ -476,38 +457,6 @@ module KikoCat01 {
             movies,
             season,
             outfit,
-        );
-        mint_box(sender, 1);
-    }
-
-    // open box and get a random NFT
-    public fun f_open_box(sender: &signer)
-    acquires KikoCatBoxCapability, KikoCatGallery {
-        let box_token = Account::withdraw<KikoCatBox>(sender, 1);
-        burn_box(box_token);
-        // get hash last 64 bit and mod nft_size
-        let hash = Block::get_parent_hash();
-        let k = 0u64;
-        let i = 0;
-        while (i < 8) {
-            let tmp = (Vector::pop_back<u8>(&mut hash) as u128);
-            k = (tmp << (i * 8) as u64) + k;
-            i = i + 1;
-        };
-        let idx = k % count_of(NFT_ADDRESS);
-        // get a nft by idx
-        let sender_address = Signer::address_of(sender);
-        let gallery = borrow_global_mut<KikoCatGallery>(NFT_ADDRESS);
-        let nft = Vector::remove<NFT<KikoCatMeta, KikoCatBody>>(&mut gallery.items, idx);
-        let id = NFT::get_id<KikoCatMeta, KikoCatBody>(&nft);
-        NFTGallery::accept<KikoCatMeta, KikoCatBody>(sender);
-        NFTGallery::deposit<KikoCatMeta, KikoCatBody>(sender, nft);
-        // emit event
-        Event::emit_event<BoxOpenEvent<KikoCatMeta, KikoCatBody>>(&mut gallery.box_open_events,
-            BoxOpenEvent {
-                owner: sender_address,
-                id: id,
-            },
         );
     }
 
@@ -576,7 +525,7 @@ module KikoCat01 {
         movies: vector<u8>,
         season: vector<u8>,
         outfit: vector<u8>,
-    ) acquires KikoCatNFTCapability, KikoCatBoxCapability, KikoCatGallery {
+    ) acquires KikoCatNFTCapability, KikoCatGallery {
         f_mint_with_image(&sender,
             name,
             image,
@@ -669,7 +618,7 @@ module KikoCat01 {
         movies: vector<u8>,
         season: vector<u8>,
         outfit: vector<u8>,
-    ) acquires KikoCatNFTCapability, KikoCatBoxCapability, KikoCatGallery {
+    ) acquires KikoCatNFTCapability, KikoCatGallery {
         f_mint_with_image_data(&sender,
             name,
             image_data,
@@ -717,8 +666,5 @@ module KikoCat01 {
         );
     }
 
-    public(script) fun open_box(sender: signer) acquires KikoCatBoxCapability, KikoCatGallery {
-        f_open_box(&sender);
-    }
 }
 }
