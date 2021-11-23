@@ -1,5 +1,5 @@
 address 0x111 {
-module KikoCat02 {
+module KikoCat01 {
     use 0x1::Signer;
     use 0x1::Event;
     use 0x1::Block;
