@@ -889,7 +889,7 @@ module NFTMarket {
         let bid_amount = Token::value(&nft_sell_info.bid_tokens);
         if (bid_amount > 0) {
             let bid_tokens = Token::withdraw<PayToken>(&mut nft_sell_info.bid_tokens, bid_amount);
-            Account::deposit<PayToken>(user_address, bid_tokens);
+            Account::deposit<PayToken>(nft_sell_info.bidder, bid_tokens);
         };
         // get back NFT
         let nft = Option::extract(&mut nft_sell_info.nft);
