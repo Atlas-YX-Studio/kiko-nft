@@ -511,6 +511,18 @@ module BatchMintNFT {
         );
     }
 
+    fun copy_vector(v: &vector<u8>) : vector<u8> {
+        let len = Vector::length<u8>(v);
+        let i = 0;
+        let target = Vector::empty<u8>();
+        while (i < len) {
+            let tmp = *Vector::borrow<u8>(v, i);
+            Vector::push_back<u8>(&mut target, tmp);
+            i = i + 1;
+        };
+        return target
+    }
+
     // ******************** NFT script function ********************
 
     public(script) fun init_with_image(
@@ -533,14 +545,17 @@ module BatchMintNFT {
 
     public(script) fun mint_with_image(
         sender: signer,
+        name: vector<u8>,
+        image: vector<u8>,
+        description: vector<u8>,
         count: u64
     ) acquires KikoCatNFTCapability, KikoCatBoxCapability, KikoCatGallery {
         let i = 0;
         while (i < count) {
             f_mint_with_image(&sender,
-                Vector::empty<u8>(),
-                Vector::empty<u8>(),
-                Vector::empty<u8>(),
+                copy_vector(&name),
+                copy_vector(&image),
+                copy_vector(&description),
                 Vector::empty<u8>(),
                 Vector::empty<u8>(),
                 Vector::empty<u8>(),
