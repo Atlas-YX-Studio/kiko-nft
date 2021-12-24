@@ -1,10 +1,12 @@
 address 0x69F1E543A3BeF043B63BEd825fcd2cf6 {
-module KikoCatNoBox {
+module BatchMintNFT {
     use 0x1::Signer;
     use 0x1::Event;
+    use 0x1::Block;
+    use 0x1::Vector;
     use 0x1::Token;
     use 0x1::Account;
-    use 0x1::NFT;
+    use 0x1::NFT::{Self, NFT};
     use 0x1::NFTGallery;
 
     const NFT_ADDRESS: address = @0x69F1E543A3BeF043B63BEd825fcd2cf6;
@@ -173,8 +175,7 @@ module KikoCatNoBox {
         );
         let gallery = borrow_global_mut<KikoCatGallery>(sender_address);
         let id = NFT::get_id<KikoCatMeta, KikoCatBody>(&nft);
-        NFTGallery::deposit(sender, nft);
-
+        Vector::push_back(&mut gallery.items, nft);
         Event::emit_event<NFTMintEvent<KikoCatMeta, KikoCatBody>>(&mut gallery.nft_mint_events,
             NFTMintEvent {
                 creator: sender_address,
@@ -186,12 +187,20 @@ module KikoCatNoBox {
     // ******************** NFT Gallery ********************
     // kiko gallery
     struct KikoCatGallery has key, store {
+        items: vector<NFT<KikoCatMeta, KikoCatBody>>,
         nft_mint_events: Event::EventHandle<NFTMintEvent<KikoCatMeta, KikoCatBody>>,
+        box_open_events: Event::EventHandle<BoxOpenEvent<KikoCatMeta, KikoCatBody>>,
     }
 
-    // nft mint event
+    // box open event
     struct NFTMintEvent<NFTMeta: store + drop, NFTBody: store + drop> has drop, store {
         creator: address,
+        id: u64,
+    }
+
+    // box open event
+    struct BoxOpenEvent<NFTMeta: store + drop, NFTBody: store + drop> has drop, store {
+        owner: address,
         id: u64,
     }
 
@@ -199,10 +208,19 @@ module KikoCatNoBox {
     fun init_gallery(sender: &signer) {
         if (!exists<KikoCatGallery>(Signer::address_of(sender))) {
             let gallery = KikoCatGallery {
+                items: Vector::empty<NFT<KikoCatMeta, KikoCatBody>>(),
                 nft_mint_events: Event::new_event_handle<NFTMintEvent<KikoCatMeta, KikoCatBody>>(sender),
+                box_open_events: Event::new_event_handle<BoxOpenEvent<KikoCatMeta, KikoCatBody>>(sender),
             };
             move_to(sender, gallery);
         }
+    }
+
+    // Count all NFTs assigned to an owner
+    public fun count_of(owner: address): u64
+    acquires KikoCatGallery {
+        let gallery = borrow_global_mut<KikoCatGallery>(owner);
+        Vector::length(&gallery.items)
     }
 
     // ******************** NFT Box ********************
@@ -316,7 +334,7 @@ module KikoCatNoBox {
         movies: vector<u8>,
         season: vector<u8>,
         outfit: vector<u8>,
-    ) acquires KikoCatNFTCapability, KikoCatGallery {
+    ) acquires KikoCatNFTCapability, KikoCatBoxCapability, KikoCatGallery {
         let sender_address = Signer::address_of(sender);
         assert(sender_address == NFT_ADDRESS, PERMISSION_DENIED);
         let metadata = NFT::new_meta_with_image(name, image, description);
@@ -363,6 +381,7 @@ module KikoCatNoBox {
             season,
             outfit,
         );
+        mint_box(sender, 1);
     }
 
     // mint NFT and box
@@ -411,7 +430,7 @@ module KikoCatNoBox {
         movies: vector<u8>,
         season: vector<u8>,
         outfit: vector<u8>,
-    ) acquires KikoCatNFTCapability, KikoCatGallery {
+    ) acquires KikoCatNFTCapability, KikoCatBoxCapability, KikoCatGallery {
         let sender_address = Signer::address_of(sender);
         assert(sender_address == NFT_ADDRESS, PERMISSION_DENIED);
         let metadata = NFT::new_meta_with_image_data(name, image_data, description);
@@ -458,6 +477,50 @@ module KikoCatNoBox {
             season,
             outfit,
         );
+        mint_box(sender, 1);
+    }
+
+    // open box and get a random NFT
+    public fun f_open_box(sender: &signer)
+    acquires KikoCatBoxCapability, KikoCatGallery {
+        let box_token = Account::withdraw<KikoCatBox>(sender, 1);
+        burn_box(box_token);
+        // get hash last 64 bit and mod nft_size
+        let hash = Block::get_parent_hash();
+        let k = 0u64;
+        let i = 0;
+        while (i < 8) {
+            let tmp = (Vector::pop_back<u8>(&mut hash) as u128);
+            k = (tmp << (i * 8) as u64) + k;
+            i = i + 1;
+        };
+        let idx = k % count_of(NFT_ADDRESS);
+        // get a nft by idx
+        let sender_address = Signer::address_of(sender);
+        let gallery = borrow_global_mut<KikoCatGallery>(NFT_ADDRESS);
+        let nft = Vector::remove<NFT<KikoCatMeta, KikoCatBody>>(&mut gallery.items, idx);
+        let id = NFT::get_id<KikoCatMeta, KikoCatBody>(&nft);
+        NFTGallery::accept<KikoCatMeta, KikoCatBody>(sender);
+        NFTGallery::deposit<KikoCatMeta, KikoCatBody>(sender, nft);
+        // emit event
+        Event::emit_event<BoxOpenEvent<KikoCatMeta, KikoCatBody>>(&mut gallery.box_open_events,
+            BoxOpenEvent {
+                owner: sender_address,
+                id: id,
+            },
+        );
+    }
+
+    fun copy_vector(v: &vector<u8>) : vector<u8> {
+        let len = Vector::length<u8>(v);
+        let i = 0;
+        let target = Vector::empty<u8>();
+        while (i < len) {
+            let tmp = *Vector::borrow<u8>(v, i);
+            Vector::push_back<u8>(&mut target, tmp);
+            i = i + 1;
+        };
+        return target
     }
 
     // ******************** NFT script function ********************
@@ -485,92 +548,57 @@ module KikoCatNoBox {
         name: vector<u8>,
         image: vector<u8>,
         description: vector<u8>,
-        background: vector<u8>,
-        fur: vector<u8>,
-        clothes: vector<u8>,
-        facial_expression: vector<u8>,
-        head: vector<u8>,
-        accessories: vector<u8>,
-        eyes: vector<u8>,
-        hat: vector<u8>,
-        costume: vector<u8>,
-        makeup: vector<u8>,
-        shoes: vector<u8>,
-        mouth: vector<u8>,
-        earring: vector<u8>,
-        necklace: vector<u8>,
-        neck: vector<u8>,
-        hair: vector<u8>,
-        horn: vector<u8>,
-        hands: vector<u8>,
-        body: vector<u8>,
-        skin: vector<u8>,
-        tattoo: vector<u8>,
-        people: vector<u8>,
-        characteristic: vector<u8>,
-        hobby: vector<u8>,
-        zodiac: vector<u8>,
-        action: vector<u8>,
-        toys: vector<u8>,
-        fruits: vector<u8>,
-        vegetables: vector<u8>,
-        meat: vector<u8>,
-        beverages: vector<u8>,
-        food: vector<u8>,
-        vehicle: vector<u8>,
-        weather: vector<u8>,
-        month: vector<u8>,
-        sports: vector<u8>,
-        music: vector<u8>,
-        movies: vector<u8>,
-        season: vector<u8>,
-        outfit: vector<u8>,
-    ) acquires KikoCatNFTCapability, KikoCatGallery {
-        f_mint_with_image(&sender,
-            name,
-            image,
-            description,
-            background,
-            fur,
-            clothes,
-            facial_expression,
-            head,
-            accessories,
-            eyes,
-            hat,
-            costume,
-            makeup,
-            shoes,
-            mouth,
-            earring,
-            necklace,
-            neck,
-            hair,
-            horn,
-            hands,
-            body,
-            skin,
-            tattoo,
-            people,
-            characteristic,
-            hobby,
-            zodiac,
-            action,
-            toys,
-            fruits,
-            vegetables,
-            meat,
-            beverages,
-            food,
-            vehicle,
-            weather,
-            month,
-            sports,
-            music,
-            movies,
-            season,
-            outfit,
-        );
+        count: u64
+    ) acquires KikoCatNFTCapability, KikoCatBoxCapability, KikoCatGallery {
+        let i = 0;
+        while (i < count) {
+            f_mint_with_image(&sender,
+                copy_vector(&name),
+                copy_vector(&image),
+                copy_vector(&description),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+                Vector::empty<u8>(),
+            );
+            i = i + 1;
+        };
     }
 
     public(script) fun mint_with_image_data(
@@ -618,7 +646,7 @@ module KikoCatNoBox {
         movies: vector<u8>,
         season: vector<u8>,
         outfit: vector<u8>,
-    ) acquires KikoCatNFTCapability, KikoCatGallery {
+    ) acquires KikoCatNFTCapability, KikoCatBoxCapability, KikoCatGallery {
         f_mint_with_image_data(&sender,
             name,
             image_data,
@@ -666,5 +694,8 @@ module KikoCatNoBox {
         );
     }
 
+    public(script) fun open_box(sender: signer) acquires KikoCatBoxCapability, KikoCatGallery {
+        f_open_box(&sender);
+    }
 }
 }
