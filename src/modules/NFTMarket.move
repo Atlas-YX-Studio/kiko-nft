@@ -27,6 +27,7 @@ module NFTMarket {
     const BOX_SELLING_PRICE_SMALL: u64 = 200011;
     const BOX_SELLING_INDEX_OUT_BOUNDS: u64 = 200012;
     const PRICE_TOO_LOW: u64 = 200013;
+    const QUANTITY_EXCESSED: u64 = 200014;
 
     // ******************** Config ********************
     struct Config has key, store {
@@ -165,6 +166,21 @@ module NFTMarket {
         init_market<NFTMeta, NFTBody, BoxToken, PayToken>(sender, creator);
     }
 
+    public fun box_offering_update<NFTMeta: store + drop, NFTBody: store + drop, BoxToken: store, PayToken: store>(
+        sender: &signer,
+        selling_price: u128,
+        selling_time: u64,
+    ) acquires BoxOffering {
+        let sender_address = Signer::address_of(sender);
+        assert(sender_address == NFT_MARKET_ADDRESS, PERMISSION_DENIED);
+        // check exists
+        assert(exists<BoxOffering<BoxToken, PayToken>>(sender_address), OFFERING_NOT_EXISTS);
+        let offering = borrow_global_mut<BoxOffering<BoxToken, PayToken>>(sender_address);
+        offering.selling_price = selling_price;
+        offering.selling_time = selling_time;
+    }
+
+
     // buy box from offering
     public fun box_buy_from_offering<BoxToken: store, PayToken: store>(sender: &signer, quantity: u128)
     acquires BoxOffering {
@@ -172,6 +188,7 @@ module NFTMarket {
         let offering = borrow_global_mut<BoxOffering<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
         assert(Timestamp::now_milliseconds() >= offering.selling_time, OFFERING_NOT_ON_SALE);
         let sender_address = Signer::address_of(sender);
+        assert(quantity <= 2, QUANTITY_EXCESSED);
         // transfer PayToken to platform
         let total_price = offering.selling_price * quantity;
         assert(Account::balance<PayToken>(sender_address) >= total_price, INSUFFICIENT_BALANCE);

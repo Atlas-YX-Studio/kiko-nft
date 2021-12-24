@@ -46,6 +46,18 @@ module NFTScripts {
         );
     }
 
+    public(script) fun box_offering_update<NFTMeta: store + drop, NFTBody: store + drop, BoxToken: store, PayToken: store>(
+        sender: signer,
+        selling_price: u128,
+        selling_time: u64,
+    ) {
+        NFTMarket::box_offering_update<NFTMeta, NFTBody, BoxToken, PayToken>(
+            &sender,
+            selling_price,
+            selling_time,
+        )
+    }
+
     public(script) fun box_buy_from_offering<BoxToken: store, PayToken: store>(sender: signer, quantity: u128) {
         NFTMarket::box_buy_from_offering<BoxToken, PayToken>(&sender, quantity);
     }
