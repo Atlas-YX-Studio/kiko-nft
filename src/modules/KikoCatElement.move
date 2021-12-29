@@ -1,5 +1,5 @@
 address 0x69F1E543A3BeF043B63BEd825fcd2cf6 {
-module KikoCatNoBox {
+module KikoCatElement {
     use 0x1::Signer;
     use 0x1::Event;
     use 0x1::Token;
@@ -14,11 +14,10 @@ module KikoCatNoBox {
     // ******************** NFT ********************
     // NFT extra meta
     struct KikoCatMeta has copy, store, drop {
-        background: vector<u8>,
-        fur: vector<u8>,
-        clothes: vector<u8>,
-        facial_expression: vector<u8>,
-        head: vector<u8>
+        type: vector<u8>,
+        type_id: u64,
+        property: vector<u8>,
+        score: u128,
     }
 
     // NFT body
@@ -45,11 +44,10 @@ module KikoCatNoBox {
     fun mint_nft(
         sender: &signer,
         metadata: NFT::Metadata,
-        background: vector<u8>,
-        fur: vector<u8>,
-        clothes: vector<u8>,
-        facial_expression: vector<u8>,
-        head: vector<u8>
+        type: vector<u8>,
+        type_id: u64,
+        property: vector<u8>,
+        score: u128,
     ) acquires KikoCatNFTCapability, KikoCatGallery {
         let sender_address = Signer::address_of(sender);
         let cap = borrow_global_mut<KikoCatNFTCapability>(sender_address);
@@ -58,19 +56,18 @@ module KikoCatNoBox {
             &mut cap.mint,
             metadata,
             KikoCatMeta {
-                background,
-                fur,
-                clothes,
-                facial_expression,
-                head
+                type,
+                type_id,
+                property,
+                score,
             },
             KikoCatBody {}
         );
-        let gallery = borrow_global_mut<KikoCatGallery>(sender_address);
+        let events = borrow_global_mut<Events>(sender_address);
         let id = NFT::get_id<KikoCatMeta, KikoCatBody>(&nft);
         NFTGallery::deposit(sender, nft);
 
-        Event::emit_event<NFTMintEvent<KikoCatMeta, KikoCatBody>>(&mut gallery.nft_mint_events,
+        Event::emit_event<NFTMintEvent<KikoCatMeta, KikoCatBody>>(&mut events.nft_mint_events,
             NFTMintEvent {
                 creator: sender_address,
                 id: id,
@@ -78,9 +75,19 @@ module KikoCatNoBox {
         );
     }
 
-    // ******************** NFT Gallery ********************
+    public fun get_type_id(nft: &NFT<KikoCatMeta, KikoCatBody>) : u64 {
+        let meta = NFT::get_type_meta<KikoCatMeta, KikoCatBody>(nft);
+        return meta.type_id
+    }
+
+    public fun get_score(nft: &NFT<KikoCatMeta, KikoCatBody>) : u64 {
+        let meta = NFT::get_type_meta<KikoCatMeta, KikoCatBody>(nft);
+        return meta.score
+    }
+
+    // ******************** NFT Events ********************
     // kiko gallery
-    struct KikoCatGallery has key, store {
+    struct Events has key, store {
         nft_mint_events: Event::EventHandle<NFTMintEvent<KikoCatMeta, KikoCatBody>>,
     }
 
@@ -91,193 +98,51 @@ module KikoCatNoBox {
     }
 
     // init kiko gallery
-    fun init_gallery(sender: &signer) {
-        if (!exists<KikoCatGallery>(Signer::address_of(sender))) {
-            let gallery = KikoCatGallery {
+    fun init_events(sender: &signer) {
+        if (!exists<Events>(Signer::address_of(sender))) {
+            let events = Events {
                 nft_mint_events: Event::new_event_handle<NFTMintEvent<KikoCatMeta, KikoCatBody>>(sender),
             };
-            move_to(sender, gallery);
+            move_to(sender, events);
         }
-    }
-
-    // ******************** NFT Box ********************
-    // box
-    struct KikoCatBox has copy, drop, store {}
-
-    const PRECISION: u8 = 0;
-
-    struct KikoCatBoxCapability has key, store {
-        mint: Token::MintCapability<KikoCatBox>,
-        burn: Token::BurnCapability<KikoCatBox>,
-    }
-
-    // init box
-    fun init_box(sender: &signer) {
-        Token::register_token<KikoCatBox>(sender, PRECISION);
-        let mint_cap = Token::remove_mint_capability<KikoCatBox>(sender);
-        let burn_cap = Token::remove_burn_capability<KikoCatBox>(sender);
-        move_to(sender, KikoCatBoxCapability { mint: mint_cap, burn: burn_cap });
-    }
-
-    // mint box
-    fun mint_box(sender: &signer, amount: u128)
-    acquires KikoCatBoxCapability {
-        let cap = borrow_global<KikoCatBoxCapability>(NFT_ADDRESS);
-        let token = Token::mint_with_capability<KikoCatBox>(&cap.mint, amount);
-        Account::deposit_to_self(sender, token);
-    }
-
-    fun burn_box(token: Token::Token<KikoCatBox>)
-    acquires KikoCatBoxCapability {
-        let cap = borrow_global<KikoCatBoxCapability>(NFT_ADDRESS);
-        Token::burn_with_capability(&cap.burn, token);
     }
 
     // ******************** NFT public function ********************
 
     // init nft and box with image
-    public fun f_init_with_image(
-        sender: &signer,
-        name: vector<u8>,
-        image: vector<u8>,
-        description: vector<u8>,
-    ) {
-        assert(Signer::address_of(sender) == NFT_ADDRESS, PERMISSION_DENIED);
-        let metadata = NFT::new_meta_with_image(name, image, description);
-        init_nft(sender, metadata);
-        init_box(sender);
-        init_gallery(sender);
-        NFTGallery::accept<KikoCatMeta, KikoCatBody>(sender);
-    }
-
-    // init nft and box with image data
-    public fun f_init_with_image_data(
-        sender: &signer,
-        name: vector<u8>,
-        image_data: vector<u8>,
-        description: vector<u8>,
-    ) {
-        assert(Signer::address_of(sender) == NFT_ADDRESS, PERMISSION_DENIED);
-        let metadata = NFT::new_meta_with_image_data(name, image_data, description);
-        init_nft(sender, metadata);
-        init_box(sender);
-        init_gallery(sender);
-        NFTGallery::accept<KikoCatMeta, KikoCatBody>(sender);
-    }
-
-    // mint NFT and box
-    public fun f_mint_with_image(
-        sender: &signer,
-        name: vector<u8>,
-        image: vector<u8>,
-        description: vector<u8>,
-        background: vector<u8>,
-        fur: vector<u8>,
-        clothes: vector<u8>,
-        facial_expression: vector<u8>,
-        head: vector<u8>
-    ) acquires KikoCatNFTCapability, KikoCatGallery {
-        let sender_address = Signer::address_of(sender);
-        assert(sender_address == NFT_ADDRESS, PERMISSION_DENIED);
-        let metadata = NFT::new_meta_with_image(name, image, description);
-        mint_nft(sender,
-            metadata,
-            background,
-            fur,
-            clothes,
-            facial_expression,
-            head
-        );
-    }
-
-    // mint NFT and box
-    public fun f_mint_with_image_data(
-        sender: &signer,
-        name: vector<u8>,
-        image_data: vector<u8>,
-        description: vector<u8>,
-        background: vector<u8>,
-        fur: vector<u8>,
-        clothes: vector<u8>,
-        facial_expression: vector<u8>,
-        head: vector<u8>
-    ) acquires KikoCatNFTCapability, KikoCatGallery {
-        let sender_address = Signer::address_of(sender);
-        assert(sender_address == NFT_ADDRESS, PERMISSION_DENIED);
-        let metadata = NFT::new_meta_with_image_data(name, image_data, description);
-        mint_nft(sender,
-            metadata,
-            background,
-            fur,
-            clothes,
-            facial_expression,
-            head
-        );
-    }
-
-    // ******************** NFT script function ********************
-
     public(script) fun init_with_image(
         sender: signer,
         name: vector<u8>,
         image: vector<u8>,
         description: vector<u8>,
     ) {
-        f_init_with_image(&sender, name, image, description);
+        assert(Signer::address_of(&sender) == NFT_ADDRESS, PERMISSION_DENIED);
+        let metadata = NFT::new_meta_with_image(name, image, description);
+        init_nft(&sender, metadata);
+        init_events(&sender);
+        NFTGallery::accept<KikoCatMeta, KikoCatBody>(&sender);
     }
 
-    public(script) fun init_with_image_data(
-        sender: signer,
-        name: vector<u8>,
-        image_data: vector<u8>,
-        description: vector<u8>,
-    ) {
-        f_init_with_image_data(&sender, name, image_data, description);
-    }
-
+    // mint NFT and box
     public(script) fun mint_with_image(
-        sender: signer,
+        sender: &signer,
         name: vector<u8>,
         image: vector<u8>,
         description: vector<u8>,
-        background: vector<u8>,
-        fur: vector<u8>,
-        clothes: vector<u8>,
-        facial_expression: vector<u8>,
-        head: vector<u8>
+        type: vector<u8>,
+        type_id: u64,
+        property: vector<u8>,
+        score: u128,
     ) acquires KikoCatNFTCapability, KikoCatGallery {
-        f_mint_with_image(&sender,
-            name,
-            image,
-            description,
-            background,
-            fur,
-            clothes,
-            facial_expression,
-            head
-        );
-    }
-
-    public(script) fun mint_with_image_data(
-        sender: signer,
-        name: vector<u8>,
-        image_data: vector<u8>,
-        description: vector<u8>,
-        background: vector<u8>,
-        fur: vector<u8>,
-        clothes: vector<u8>,
-        facial_expression: vector<u8>,
-        head: vector<u8>
-    ) acquires KikoCatNFTCapability, KikoCatGallery {
-        f_mint_with_image_data(&sender,
-            name,
-            image_data,
-            description,
-            background,
-            fur,
-            clothes,
-            facial_expression,
-            head
+        let sender_address = Signer::address_of(sender);
+        assert(sender_address == NFT_ADDRESS, PERMISSION_DENIED);
+        let metadata = NFT::new_meta_with_image(name, image, description);
+        mint_nft(sender,
+            metadata,
+            type,
+            type_id,
+            property,
+            score,
         );
     }
 
