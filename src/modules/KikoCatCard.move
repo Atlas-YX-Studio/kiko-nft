@@ -1,5 +1,5 @@
 address 0x69F1E543A3BeF043B63BEd825fcd2cf6 {
-module KikoCatCard {
+module KikoCatCard01 {
     use 0x1::Signer;
     use 0x1::Event;
     use 0x1::Block;
@@ -9,27 +9,29 @@ module KikoCatCard {
     use 0x1::Account;
     use 0x1::NFT::{Self, NFT};
     use 0x1::NFTGallery;
-    use 0x69F1E543A3BeF043B63BEd825fcd2cf6::KikoCatElement::{KikoCatMeta as ElementMeta, KikoCatBody as ElementBody};
+    use 0x69F1E543A3BeF043B63BEd825fcd2cf6::KikoCatElement01::{Self, KikoCatMeta as ElementMeta, KikoCatBody as ElementBody};
 
     const NFT_ADDRESS: address = @0x69F1E543A3BeF043B63BEd825fcd2cf6;
 
     const PERMISSION_DENIED: u64 = 100001;
     const TYPE_NOT_MATCH: u64 = 100002;
     const NFT_NOT_EXIST: u64 = 100003;
+    const ELEMENT_CANNOT_EMPTY: u64 = 100004;
 
     // ******************** NFT ********************
     // NFT extra meta
-    struct KikoCatMeta has copy, store, drop {}
+    struct KikoCatMeta has copy, store, drop {
+        original: bool,
+        score: u128,
+        background_id: u64,
+        fur_id: u64,
+        clothes_id: u64,
+        facial_expression_id: u64,
+        head_id: u64,
+    }
 
     // NFT body
-    struct KikoCatBody has store, drop {
-        background: Option<NFT<ElementMeta, ElementBody>>,
-        fur: Option<NFT<ElementMeta, ElementBody>>,
-        clothes: Option<NFT<ElementMeta, ElementBody>>,
-        facial_expression: Option<NFT<ElementMeta, ElementBody>>,
-        head: Option<NFT<ElementMeta, ElementBody>>,
-        score: u128,
-    }
+    struct KikoCatBody has copy, store, drop {}
 
     // NFT extra type info
     struct KikoCatTypeInfo has copy, store, drop {}
@@ -37,7 +39,10 @@ module KikoCatCard {
     struct KikoCatNFTCapability has key {
         mint: NFT::MintCapability<KikoCatMeta>,
         burn: NFT::BurnCapability<KikoCatMeta>,
-        update: NFT::UpdateCapability<KikoCatMeta>,
+    }
+
+    struct ElementGallery has key, store {
+        items: vector<NFT<ElementMeta, ElementBody>>,
     }
 
     // init nft with image data
@@ -48,8 +53,7 @@ module KikoCatCard {
         NFT::register<KikoCatMeta, KikoCatTypeInfo>(sender, KikoCatTypeInfo {}, metadata);
         let mint = NFT::remove_mint_capability<KikoCatMeta>(sender);
         let burn = NFT::remove_burn_capability<KikoCatMeta>(sender);
-        let update = NFT::remove_update_capability<KikoCatMeta>(sender);
-        move_to(sender, KikoCatNFTCapability { mint, burn, update });
+        move_to(sender, KikoCatNFTCapability { mint, burn });
     }
 
     // mint nft and deposit into kiko gallery
@@ -61,39 +65,17 @@ module KikoCatCard {
         clothes_id: u64,
         facial_expression_id: u64,
         head_id: u64,
-    ) acquires KikoCatNFTCapability, KikoCatGallery {
-        let sender_address = Signer::address_of(sender);
-        let cap = borrow_global_mut<KikoCatNFTCapability>(sender_address);
-        // element nft
-        let background = get_element_by_id(sender, background_id, 1u64);
-        let clothes = get_element_by_id(sender, fur_id, 1u64);
-        let fur = get_element_by_id(sender, clothes_id, 1u64);
-        let facial_expression = get_element_by_id(sender, facial_expression_id, 1u64);
-        let head = get_element_by_id(sender, head_id, 1u64);
-        // score
-        let score = sum_score(background, clothes, fur, facial_expression, head);
+    ) acquires KikoCatNFTCapability, KikoCatGallery, ElementGallery {
+        let nft = composit_nft(sender, metadata, true, background_id, fur_id, clothes_id, facial_expression_id, head_id);
 
-        let nft = NFT::mint_with_cap<KikoCatMeta, KikoCatBody, KikoCatTypeInfo>(
-            sender_address,
-            &mut cap.mint,
-            metadata,
-            KikoCatMeta {},
-            KikoCatBody {
-                background,
-                clothes,
-                fur,
-                facial_expression,
-                head,
-                score,
-            }
-        );
-        let gallery = borrow_global_mut<KikoCatGallery>(sender_address);
+        let gallery = borrow_global_mut<KikoCatGallery>(NFT_ADDRESS);
         let id = NFT::get_id<KikoCatMeta, KikoCatBody>(&nft);
         Vector::push_back(&mut gallery.items, nft);
         Event::emit_event<NFTMintEvent<KikoCatMeta, KikoCatBody>>(&mut gallery.nft_mint_events,
-            NFTMintEvent {
-                creator: sender_address,
+            NFTMintEvent<KikoCatMeta, KikoCatBody> {
+                creator: NFT_ADDRESS,
                 id,
+                original: true,
                 background_id,
                 clothes_id,
                 fur_id,
@@ -112,35 +94,18 @@ module KikoCatCard {
         clothes_id: u64,
         facial_expression_id: u64,
         head_id: u64,
-    ) acquires KikoCatNFTCapability, KikoCatGallery {
+    ) acquires KikoCatNFTCapability, KikoCatGallery, ElementGallery {
+        let nft = composit_nft(sender, metadata, false, background_id, fur_id, clothes_id, facial_expression_id, head_id);
         let sender_address = Signer::address_of(sender);
-        let cap = borrow_global_mut<KikoCatNFTCapability>(sender_address);
-        let background = get_element_by_id(sender, background_id, 1u64);
-        let clothes = get_element_by_id(sender, fur_id, 1u64);
-        let fur = get_element_by_id(sender, clothes_id, 1u64);
-        let facial_expression = get_element_by_id(sender, facial_expression_id, 1u64);
-        let head = get_element_by_id(sender, head_id, 1u64);
-        let score = sum_score(background, clothes, fur, facial_expression, head);
-        let nft = NFT::mint_with_cap<KikoCatMeta, KikoCatBody, KikoCatTypeInfo>(
-            sender_address,
-            &mut cap.mint,
-            metadata,
-            KikoCatMeta {},
-            KikoCatBody {
-                background,
-                clothes,
-                fur,
-                facial_expression,
-                head,
-                score, }
-        );
-        let gallery = borrow_global_mut<KikoCatGallery>(sender_address);
+
+        let gallery = borrow_global_mut<KikoCatGallery>(NFT_ADDRESS);
         let id = NFT::get_id<KikoCatMeta, KikoCatBody>(&nft);
         NFTGallery::deposit(sender, nft);
         Event::emit_event<NFTMintEvent<KikoCatMeta, KikoCatBody>>(&mut gallery.nft_mint_events,
-            NFTMintEvent {
+            NFTMintEvent<KikoCatMeta, KikoCatBody> {
                 creator: sender_address,
                 id,
+                original: false,
                 background_id,
                 clothes_id,
                 fur_id,
@@ -150,68 +115,119 @@ module KikoCatCard {
         );
     }
 
+    fun composit_nft(
+        sender: &signer,
+        metadata: NFT::Metadata,
+        original: bool,
+        background_id: u64,
+        fur_id: u64,
+        clothes_id: u64,
+        facial_expression_id: u64,
+        head_id: u64
+    ) : NFT<KikoCatMeta, KikoCatBody> acquires KikoCatNFTCapability, ElementGallery {
+        let sender_address = Signer::address_of(sender);
+        assert(background_id + fur_id + clothes_id + facial_expression_id + head_id > 0, ELEMENT_CANNOT_EMPTY);
+
+        let cap = borrow_global_mut<KikoCatNFTCapability>(sender_address);
+        // stake element and sum score
+        let score = 0;
+        score = score + stake_element_by_id(sender, background_id, 1u64);
+        score = score + stake_element_by_id(sender, fur_id, 2u64);
+        score = score + stake_element_by_id(sender, clothes_id, 3u64);
+        score = score + stake_element_by_id(sender, facial_expression_id, 4u64);
+        score = score + stake_element_by_id(sender, head_id, 5u64);
+        // mint card
+        NFT::mint_with_cap<KikoCatMeta, KikoCatBody, KikoCatTypeInfo>(
+            sender_address,
+            &mut cap.mint,
+            metadata,
+            KikoCatMeta {
+                original,
+                score,
+                background_id,
+                clothes_id,
+                fur_id,
+                facial_expression_id,
+                head_id,
+            },
+            KikoCatBody {}
+        )
+    }
+
     // resolve and destory card
-    fun resolve_nft(sender: &signer, nft_id: u64) acquires KikoCatNFTCapability {
-        let option_nft = NFTGallery::withdraw<KikoCatMeta, KikoCatBody>(account, id);
+    fun resolve_nft(sender: &signer, nft_id: u64) acquires KikoCatNFTCapability, KikoCatGallery, ElementGallery {
+        let option_nft = NFTGallery::withdraw<KikoCatMeta, KikoCatBody>(sender, nft_id);
         assert(Option::is_some<NFT<KikoCatMeta, KikoCatBody>>(&option_nft), NFT_NOT_EXIST);
-        let nft = Option::extract<NFT<KikoCatMeta, KikoCatBody>>(&option_nft);
-        // get body with update cap
-        let cap = borrow_global_mut<KikoCatNFTCapability>(NFT_ADDRESS);
-        let body = NFT::borrow_body_mut_with_cap<KikoCatMeta, KikoCatBody>(cap.update);
-        // deposit element
-        deposit_nft(sender, body.background);
-        deposit_nft(sender, body.fur);
-        deposit_nft(sender, body.clothes);
-        deposit_nft(sender, body.facial_expression);
-        deposit_nft(sender, body.head);
+        let nft = Option::extract<NFT<KikoCatMeta, KikoCatBody>>(&mut option_nft);
+        // get meta
+        let meta = NFT::get_type_meta<KikoCatMeta, KikoCatBody>(&nft);
+        // deposit element to user
+        unstake_element_by_id(sender, meta.background_id);
+        unstake_element_by_id(sender, meta.fur_id);
+        unstake_element_by_id(sender, meta.clothes_id);
+        unstake_element_by_id(sender, meta.facial_expression_id);
+        unstake_element_by_id(sender, meta.head_id);
         // destroy card
-        NFT::burn_with_cap<ElementMeta, ElementBody>(cap.update, nft);
+        let cap = borrow_global_mut<KikoCatNFTCapability>(NFT_ADDRESS);
+        let KikoCatBody {} = NFT::burn_with_cap<KikoCatMeta, KikoCatBody>(&mut cap.burn, nft);
+        Option::destroy_none(option_nft);
+
+        let gallery = borrow_global_mut<KikoCatGallery>(NFT_ADDRESS);
         Event::emit_event<NFTResolveEvent<KikoCatMeta, KikoCatBody>>(&mut gallery.nft_resolve_events,
-            NFTResolveEvent {
-                creator: sender_address,
+            NFTResolveEvent<KikoCatMeta, KikoCatBody> {
+                owner: Signer::address_of(sender),
                 id: nft_id,
             },
         );
     }
 
-    fun deposit_nft(sender: &signer, option_nft: &Option<NFT<ElementMeta, ElementBody>>) {
-        let backgroup = Option.extract<NFT<ElementMeta, ElementBody>>(body.background);
-        NFTGallery::deposit(sender, backgroup);
+    fun unstake_element_by_id(sender: &signer, id: u64) acquires ElementGallery {
+        if (id > 0) {
+            let gallery = borrow_global_mut<ElementGallery>(NFT_ADDRESS);
+            let len = Vector::length(&gallery.items);
+            if (len == 0) {
+                return
+            };
+            let idx = len - 1;
+            loop {
+                let nft = Vector::borrow(&gallery.items, idx);
+                if (NFT::get_id(nft) == id) {
+                    let nft = Vector::remove<NFT<ElementMeta, ElementBody>>(&mut gallery.items, idx);
+                    NFTGallery::deposit<ElementMeta, ElementBody>(sender, nft);
+                };
+                idx = idx - 1;
+                assert(idx >= 0, NFT_NOT_EXIST);
+            }
+        }
     }
 
-    // sum score
-    fun sum_score(
-        backgroup: Option<NFT<ElementMeta, ElementBody>>,
-        fur: Option<NFT<ElementMeta, ElementBody>>,
-        clothes: Option<NFT<ElementMeta, ElementBody>>,
-        facial_expression: Option<NFT<ElementMeta, ElementBody>>,
-        head: Option<NFT<ElementMeta, ElementBody>>,
-    ): u64 {
-        let score = get_score(backgroup);
-        score = score + get_score(fur);
-        score = score + get_score(clothes);
-        score = score + get_score(facial_expression);
-        score = score + get_score(head);
-        score
+    // stake element by id
+    fun stake_element_by_id(sender: &signer, nft_id: u64, type_id: u64): u128 acquires ElementGallery {
+        if (nft_id == 0) {
+            return 0
+        };
+        // get element
+        let option_nft = NFTGallery::withdraw<ElementMeta, ElementBody>(sender, nft_id);
+        assert(Option::is_some<NFT<ElementMeta, ElementBody>>(&option_nft), NFT_NOT_EXIST);
+        // get nft
+        let nft = Option::borrow<NFT<ElementMeta, ElementBody>>(&option_nft);
+        assert(KikoCatElement01::get_type_id(nft) == type_id, TYPE_NOT_MATCH);
+        // stake and return score
+        let gallery = borrow_global_mut<ElementGallery>(NFT_ADDRESS);
+        let score = get_score(&option_nft);
+        Vector::push_back<NFT<ElementMeta, ElementBody>>(&mut gallery.items, Option::extract(&mut option_nft));
+        Option::destroy_none(option_nft);
+
+        return score
     }
 
     // get score from element
-    fun get_score(option_nft: &Option<NFT<ElementMeta, ElementBody>>): u64 {
+    fun get_score(option_nft: &Option<NFT<ElementMeta, ElementBody>>): u128 {
         if (Option::is_some<NFT<ElementMeta, ElementBody>>(option_nft)) {
-            let nft = Option::borrow<NFT<ElementMeta, ElementBody>>(&option_nft);
-            return KikoCatElement::get_score(nft)
+            let nft = Option::borrow<NFT<ElementMeta, ElementBody>>(option_nft);
+            return KikoCatElement01::get_score(nft)
         };
         return 0
-    }
-
-    // get element by nft id
-    fun get_element_by_id(sender: &signer, nft_id: u64, type_id: u64): Option<NFT<ElementMeta, ElementBody>> {
-        let option_nft = NFTGallery::withdraw<ElementMeta, ElementBody>(sender, id);
-        if (Option::is_some<NFT<ElementMeta, ElementBody>>(&option_nft)) {
-            let nft = Option::borrow<NFT<ElementMeta, ElementBody>>(&option_nft);
-            assert(KikoCatElement::get_type_id(nft) == type_id, TYPE_NOT_MATCH);
-        };
-        return option_nft
     }
 
     // ******************** NFT Gallery ********************
@@ -227,6 +243,7 @@ module KikoCatCard {
     struct NFTMintEvent<NFTMeta: store + drop, NFTBody: store + drop> has drop, store {
         creator: address,
         id: u64,
+        original: bool,
         background_id: u64,
         fur_id: u64,
         clothes_id: u64,
@@ -236,7 +253,7 @@ module KikoCatCard {
 
     // box open event
     struct NFTResolveEvent<NFTMeta: store + drop, NFTBody: store + drop> has drop, store {
-        creator: address,
+        owner: address,
         id: u64,
     }
 
@@ -327,7 +344,7 @@ module KikoCatCard {
         clothes_id: u64,
         facial_expression_id: u64,
         head_id: u64,
-    ) acquires KikoCatNFTCapability, KikoCatBoxCapability, KikoCatGallery {
+    ) acquires KikoCatNFTCapability, KikoCatBoxCapability, KikoCatGallery, ElementGallery {
         let sender_address = Signer::address_of(&sender);
         assert(sender_address == NFT_ADDRESS, PERMISSION_DENIED);
         let metadata = NFT::new_meta_with_image(name, image, description);
@@ -346,7 +363,7 @@ module KikoCatCard {
         clothes_id: u64,
         facial_expression_id: u64,
         head_id: u64,
-    ) acquires KikoCatNFTCapability, KikoCatBoxCapability, KikoCatGallery {
+    ) acquires KikoCatNFTCapability, KikoCatGallery, ElementGallery {
         let sender_address = Signer::address_of(&sender);
         assert(sender_address == NFT_ADDRESS, PERMISSION_DENIED);
         let metadata = NFT::new_meta_with_image(name, image, description);
@@ -377,7 +394,7 @@ module KikoCatCard {
         NFTGallery::deposit<KikoCatMeta, KikoCatBody>(&sender, nft);
         // emit event
         Event::emit_event<BoxOpenEvent<KikoCatMeta, KikoCatBody>>(&mut gallery.box_open_events,
-            BoxOpenEvent {
+            BoxOpenEvent<KikoCatMeta, KikoCatBody> {
                 owner: sender_address,
                 id: id,
             },

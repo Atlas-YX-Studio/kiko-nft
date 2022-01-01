@@ -1,5 +1,5 @@
-address 0xA85291039DdAD8845D5097624C81C3Fd {
-module NFTMarket05 {
+address 0x7ed4261b68ddb20158109794bbab3ae7 {
+module NFTMarket {
 
     use 0x1::Event;
     use 0x1::Account;
@@ -11,7 +11,7 @@ module NFTMarket05 {
     use 0x1::NFT::{Self, NFT};
     use 0x1::NFTGallery;
 
-    const NFT_MARKET_ADDRESS: address = @0xA85291039DdAD8845D5097624C81C3Fd;
+    const NFT_MARKET_ADDRESS: address = @0x7ed4261b68ddb20158109794bbab3ae7;
 
     //error
     const PERMISSION_DENIED: u64 = 200001;
@@ -188,7 +188,7 @@ module NFTMarket05 {
         let offering = borrow_global_mut<BoxOffering<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
         assert(Timestamp::now_milliseconds() >= offering.selling_time, OFFERING_NOT_ON_SALE);
         let sender_address = Signer::address_of(sender);
-        assert(quantity <= 2, QUANTITY_EXCESSED);
+        assert(quantity <= 5, QUANTITY_EXCESSED);
         // transfer PayToken to platform
         let total_price = offering.selling_price * quantity;
         assert(Account::balance<PayToken>(sender_address) >= total_price, INSUFFICIENT_BALANCE);

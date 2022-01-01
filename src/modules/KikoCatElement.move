@@ -1,10 +1,8 @@
 address 0x69F1E543A3BeF043B63BEd825fcd2cf6 {
-module KikoCatElement {
+module KikoCatElement01 {
     use 0x1::Signer;
     use 0x1::Event;
-    use 0x1::Token;
-    use 0x1::Account;
-    use 0x1::NFT;
+    use 0x1::NFT::{Self, NFT};
     use 0x1::NFTGallery;
 
     const NFT_ADDRESS: address = @0x69F1E543A3BeF043B63BEd825fcd2cf6;
@@ -48,7 +46,7 @@ module KikoCatElement {
         type_id: u64,
         property: vector<u8>,
         score: u128,
-    ) acquires KikoCatNFTCapability, KikoCatGallery {
+    ) acquires KikoCatNFTCapability, Events {
         let sender_address = Signer::address_of(sender);
         let cap = borrow_global_mut<KikoCatNFTCapability>(sender_address);
         let nft = NFT::mint_with_cap<KikoCatMeta, KikoCatBody, KikoCatTypeInfo>(
@@ -67,7 +65,7 @@ module KikoCatElement {
         let id = NFT::get_id<KikoCatMeta, KikoCatBody>(&nft);
         NFTGallery::deposit(sender, nft);
 
-        Event::emit_event<NFTMintEvent<KikoCatMeta, KikoCatBody>>(&mut events.nft_mint_events,
+        Event::emit_event<NFTMintEvent<KikoCatMeta>>(&mut events.nft_mint_events,
             NFTMintEvent {
                 creator: sender_address,
                 id: id,
@@ -80,7 +78,7 @@ module KikoCatElement {
         return meta.type_id
     }
 
-    public fun get_score(nft: &NFT<KikoCatMeta, KikoCatBody>) : u64 {
+    public fun get_score(nft: &NFT<KikoCatMeta, KikoCatBody>) : u128 {
         let meta = NFT::get_type_meta<KikoCatMeta, KikoCatBody>(nft);
         return meta.score
     }
@@ -88,11 +86,11 @@ module KikoCatElement {
     // ******************** NFT Events ********************
     // kiko gallery
     struct Events has key, store {
-        nft_mint_events: Event::EventHandle<NFTMintEvent<KikoCatMeta, KikoCatBody>>,
+        nft_mint_events: Event::EventHandle<NFTMintEvent<KikoCatMeta>>,
     }
 
     // nft mint event
-    struct NFTMintEvent<NFTMeta: store + drop, NFTBody: store + drop> has drop, store {
+    struct NFTMintEvent<NFTMeta: store + drop> has drop, store {
         creator: address,
         id: u64,
     }
@@ -101,7 +99,7 @@ module KikoCatElement {
     fun init_events(sender: &signer) {
         if (!exists<Events>(Signer::address_of(sender))) {
             let events = Events {
-                nft_mint_events: Event::new_event_handle<NFTMintEvent<KikoCatMeta, KikoCatBody>>(sender),
+                nft_mint_events: Event::new_event_handle<NFTMintEvent<KikoCatMeta>>(sender),
             };
             move_to(sender, events);
         }
@@ -133,7 +131,7 @@ module KikoCatElement {
         type_id: u64,
         property: vector<u8>,
         score: u128,
-    ) acquires KikoCatNFTCapability, KikoCatGallery {
+    ) acquires KikoCatNFTCapability, Events {
         let sender_address = Signer::address_of(sender);
         assert(sender_address == NFT_ADDRESS, PERMISSION_DENIED);
         let metadata = NFT::new_meta_with_image(name, image, description);
