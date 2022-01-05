@@ -6,6 +6,7 @@ module KikoCatCard04 {
     use 0x1::Vector;
     use 0x1::Option::{Self, Option};
     use 0x1::Token;
+    use 0x1::STC::STC;
     use 0x1::Account;
     use 0x1::NFT::{Self, NFT};
     use 0x1::NFTGallery;
@@ -17,6 +18,7 @@ module KikoCatCard04 {
     const TYPE_NOT_MATCH: u64 = 100002;
     const NFT_NOT_EXIST: u64 = 100003;
     const ELEMENT_CANNOT_EMPTY: u64 = 100004;
+    const INSUFFICIENT_BALANCE: u64 = 100005;
 
     // ******************** NFT ********************
     // NFT extra meta
@@ -393,6 +395,13 @@ module KikoCatCard04 {
         pants_id: u64,
         skirt_id: u64,
     ) acquires KikoCatNFTCapability, KikoCatGallery, ElementGallery {
+        // get fee
+        let gallery = borrow_global_mut<KikoCatGallery>(NFT_ADDRESS);
+        let composite_fee = gallery.composite_fee;
+        let sender_address = Signer::address_of(sender);
+        assert(Account::balance<STC>(sender_address) > composite_fee, INSUFFICIENT_BALANCE);
+        Account::pay_from<STC>(sender, NFT_ADDRESS, composite_fee);
+
         let nft = composit_nft(
             sender,
             metadata,
@@ -450,9 +459,7 @@ module KikoCatCard04 {
             pants_id,
             skirt_id,
         );
-        let sender_address = Signer::address_of(sender);
 
-        let gallery = borrow_global_mut<KikoCatGallery>(NFT_ADDRESS);
         let id = NFT::get_id<KikoCatMeta, KikoCatBody>(&nft);
         NFTGallery::deposit(sender, nft);
         Event::emit_event<NFTMintEvent<KikoCatMeta, KikoCatBody>>(&mut gallery.nft_mint_events,
@@ -1047,6 +1054,7 @@ module KikoCatCard04 {
     // kiko gallery
     struct KikoCatGallery has key, store {
         items: vector<NFT<KikoCatMeta, KikoCatBody>>,
+        composite_fee: u128,
         nft_mint_events: Event::EventHandle<NFTMintEvent<KikoCatMeta, KikoCatBody>>,
         nft_resolve_events: Event::EventHandle<NFTResolveEvent<KikoCatMeta, KikoCatBody>>,
         box_open_events: Event::EventHandle<BoxOpenEvent<KikoCatMeta, KikoCatBody>>,
@@ -1124,10 +1132,11 @@ module KikoCatCard04 {
     }
 
     // init kiko gallery
-    fun init_gallery(sender: &signer) {
+    fun init_gallery(sender: &signer, composite_fee: u128) {
         if (!exists<KikoCatGallery>(Signer::address_of(sender))) {
             let gallery = KikoCatGallery {
                 items: Vector::empty<NFT<KikoCatMeta, KikoCatBody>>(),
+                composite_fee,
                 nft_mint_events: Event::new_event_handle<NFTMintEvent<KikoCatMeta, KikoCatBody>>(sender),
                 nft_resolve_events: Event::new_event_handle<NFTResolveEvent<KikoCatMeta, KikoCatBody>>(sender),
                 box_open_events: Event::new_event_handle<BoxOpenEvent<KikoCatMeta, KikoCatBody>>(sender),
@@ -1190,13 +1199,20 @@ module KikoCatCard04 {
         name: vector<u8>,
         image: vector<u8>,
         description: vector<u8>,
+        composite_fee: u128,
     ) {
         assert(Signer::address_of(&sender) == NFT_ADDRESS, PERMISSION_DENIED);
         let metadata = NFT::new_meta_with_image(name, image, description);
         init_nft(&sender, metadata);
         init_box(&sender);
-        init_gallery(&sender);
+        init_gallery(&sender, composite_fee);
         NFTGallery::accept<KikoCatMeta, KikoCatBody>(&sender);
+    }
+
+    public(script) fun update_config(sender: signer, composite_fee: u128) acquires KikoCatGallery {
+        assert(Signer::address_of(&sender) == NFT_ADDRESS, PERMISSION_DENIED);
+        let gallery = borrow_global_mut<KikoCatGallery>(NFT_ADDRESS);
+        gallery.composite_fee = composite_fee;
     }
 
     // mint NFT and box
