@@ -1,5 +1,5 @@
 address 0x69F1E543A3BeF043B63BEd825fcd2cf6 {
-module KikoCatCard04 {
+module KikoCatCard05 {
     use 0x1::Signer;
     use 0x1::Event;
     use 0x1::Block;
@@ -10,7 +10,7 @@ module KikoCatCard04 {
     use 0x1::Account;
     use 0x1::NFT::{Self, NFT};
     use 0x1::NFTGallery;
-    use 0x69F1E543A3BeF043B63BEd825fcd2cf6::KikoCatElement04::{Self, KikoCatMeta as ElementMeta, KikoCatBody as ElementBody};
+    use 0x69F1E543A3BeF043B63BEd825fcd2cf6::KikoCatElement05::{Self, KikoCatMeta as ElementMeta, KikoCatBody as ElementBody};
 
     const NFT_ADDRESS: address = @0x69F1E543A3BeF043B63BEd825fcd2cf6;
 
@@ -27,6 +27,7 @@ module KikoCatCard04 {
         custom_name: vector<u8>,
         original: bool,
         score: u128,
+        sex: u8,
         background_id: u64,
         fur_id: u64,
         clothes_id: u64,
@@ -77,6 +78,11 @@ module KikoCatCard04 {
         mecha_id: u64,
         pants_id: u64,
         skirt_id: u64,
+        left_hand_id: u64,
+        right_hand_id: u64,
+        pets_id: u64,
+        gifts_id: u64,
+        tail_id: u64,
     }
 
     // NFT body
@@ -146,6 +152,11 @@ module KikoCatCard04 {
         mecha: Option<NFT<ElementMeta, ElementBody>>,
         pants: Option<NFT<ElementMeta, ElementBody>>,
         skirt: Option<NFT<ElementMeta, ElementBody>>,
+        left_hand: Option<NFT<ElementMeta, ElementBody>>,
+        right_hand: Option<NFT<ElementMeta, ElementBody>>,
+        pets: Option<NFT<ElementMeta, ElementBody>>,
+        gifts: Option<NFT<ElementMeta, ElementBody>>,
+        tail: Option<NFT<ElementMeta, ElementBody>>,
     }
 
     // init nft with image data
@@ -159,376 +170,13 @@ module KikoCatCard04 {
         move_to(sender, KikoCatNFTCapability { mint, burn });
     }
 
-    // mint nft and deposit into kiko gallery
-    fun composite_original_nft(
-        sender: &signer,
-        metadata: NFT::Metadata,
-        occupation: vector<u8>,
-        custom_name: vector<u8>,
-        background_id: u64,
-        fur_id: u64,
-        clothes_id: u64,
-        expression_id: u64,
-        head_id: u64,
-        accessories_id: u64,
-        eyes_id: u64,
-        hat_id: u64,
-        costume_id: u64,
-        makeup_id: u64,
-        shoes_id: u64,
-        mouth_id: u64,
-        earring_id: u64,
-        necklace_id: u64,
-        neck_id: u64,
-        hair_id: u64,
-        horn_id: u64,
-        hands_id: u64,
-        body_id: u64,
-        skin_id: u64,
-        tattoo_id: u64,
-        people_id: u64,
-        characteristic_id: u64,
-        hobby_id: u64,
-        zodiac_id: u64,
-        action_id: u64,
-        toys_id: u64,
-        fruits_id: u64,
-        vegetables_id: u64,
-        meat_id: u64,
-        beverages_id: u64,
-        food_id: u64,
-        vehicle_id: u64,
-        weather_id: u64,
-        month_id: u64,
-        sports_id: u64,
-        music_id: u64,
-        movies_id: u64,
-        season_id: u64,
-        outfit_id: u64,
-        face_id: u64,
-        arm_id: u64,
-        leg_id: u64,
-        foot_id: u64,
-        weapon_id: u64,
-        helmet_id: u64,
-        armor_id: u64,
-        mecha_id: u64,
-        pants_id: u64,
-        skirt_id: u64,
-    ) acquires KikoCatNFTCapability, KikoCatGallery, ElementGallery {
-        let nft = composit_nft(
-            sender,
-            metadata,
-            copy_vector(&occupation),
-            copy_vector(&custom_name),
-            true,
-            background_id,
-            fur_id,
-            clothes_id,
-            expression_id,
-            head_id,
-            accessories_id,
-            eyes_id,
-            hat_id,
-            costume_id,
-            makeup_id,
-            shoes_id,
-            mouth_id,
-            earring_id,
-            necklace_id,
-            neck_id,
-            hair_id,
-            horn_id,
-            hands_id,
-            body_id,
-            skin_id,
-            tattoo_id,
-            people_id,
-            characteristic_id,
-            hobby_id,
-            zodiac_id,
-            action_id,
-            toys_id,
-            fruits_id,
-            vegetables_id,
-            meat_id,
-            beverages_id,
-            food_id,
-            vehicle_id,
-            weather_id,
-            month_id,
-            sports_id,
-            music_id,
-            movies_id,
-            season_id,
-            outfit_id,
-            face_id,
-            arm_id,
-            leg_id,
-            foot_id,
-            weapon_id,
-            helmet_id,
-            armor_id,
-            mecha_id,
-            pants_id,
-            skirt_id,
-        );
-
-        let gallery = borrow_global_mut<KikoCatGallery>(NFT_ADDRESS);
-        let id = NFT::get_id<KikoCatMeta, KikoCatBody>(&nft);
-        Vector::push_back(&mut gallery.items, nft);
-        Event::emit_event<NFTMintEvent<KikoCatMeta, KikoCatBody>>(&mut gallery.nft_mint_events,
-            NFTMintEvent<KikoCatMeta, KikoCatBody> {
-                creator: NFT_ADDRESS,
-                id,
-                original: true,
-                occupation,
-                custom_name,
-                background_id,
-                fur_id,
-                clothes_id,
-                expression_id,
-                head_id,
-                accessories_id,
-                eyes_id,
-                hat_id,
-                costume_id,
-                makeup_id,
-                shoes_id,
-                mouth_id,
-                earring_id,
-                necklace_id,
-                neck_id,
-                hair_id,
-                horn_id,
-                hands_id,
-                body_id,
-                skin_id,
-                tattoo_id,
-                people_id,
-                characteristic_id,
-                hobby_id,
-                zodiac_id,
-                action_id,
-                toys_id,
-                fruits_id,
-                vegetables_id,
-                meat_id,
-                beverages_id,
-                food_id,
-                vehicle_id,
-                weather_id,
-                month_id,
-                sports_id,
-                music_id,
-                movies_id,
-                season_id,
-                outfit_id,
-                face_id,
-                arm_id,
-                leg_id,
-                foot_id,
-                weapon_id,
-                helmet_id,
-                armor_id,
-                mecha_id,
-                pants_id,
-                skirt_id,
-            },
-        );
-    }
-
-    // mint nft and deposit into user gallery
-    fun composite_custom_nft(
-        sender: &signer,
-        metadata: NFT::Metadata,
-        occupation: vector<u8>,
-        custom_name: vector<u8>,
-        background_id: u64,
-        fur_id: u64,
-        clothes_id: u64,
-        expression_id: u64,
-        head_id: u64,
-        accessories_id: u64,
-        eyes_id: u64,
-        hat_id: u64,
-        costume_id: u64,
-        makeup_id: u64,
-        shoes_id: u64,
-        mouth_id: u64,
-        earring_id: u64,
-        necklace_id: u64,
-        neck_id: u64,
-        hair_id: u64,
-        horn_id: u64,
-        hands_id: u64,
-        body_id: u64,
-        skin_id: u64,
-        tattoo_id: u64,
-        people_id: u64,
-        characteristic_id: u64,
-        hobby_id: u64,
-        zodiac_id: u64,
-        action_id: u64,
-        toys_id: u64,
-        fruits_id: u64,
-        vegetables_id: u64,
-        meat_id: u64,
-        beverages_id: u64,
-        food_id: u64,
-        vehicle_id: u64,
-        weather_id: u64,
-        month_id: u64,
-        sports_id: u64,
-        music_id: u64,
-        movies_id: u64,
-        season_id: u64,
-        outfit_id: u64,
-        face_id: u64,
-        arm_id: u64,
-        leg_id: u64,
-        foot_id: u64,
-        weapon_id: u64,
-        helmet_id: u64,
-        armor_id: u64,
-        mecha_id: u64,
-        pants_id: u64,
-        skirt_id: u64,
-    ) acquires KikoCatNFTCapability, KikoCatGallery, ElementGallery {
-        // get fee
-        let gallery = borrow_global_mut<KikoCatGallery>(NFT_ADDRESS);
-        let composite_fee = gallery.composite_fee;
-        let sender_address = Signer::address_of(sender);
-        assert(Account::balance<STC>(sender_address) > composite_fee, INSUFFICIENT_BALANCE);
-        Account::pay_from<STC>(sender, NFT_ADDRESS, composite_fee);
-
-        let nft = composit_nft(
-            sender,
-            metadata,
-            copy_vector(&occupation),
-            copy_vector(&custom_name),
-            true,
-            background_id,
-            fur_id,
-            clothes_id,
-            expression_id,
-            head_id,
-            accessories_id,
-            eyes_id,
-            hat_id,
-            costume_id,
-            makeup_id,
-            shoes_id,
-            mouth_id,
-            earring_id,
-            necklace_id,
-            neck_id,
-            hair_id,
-            horn_id,
-            hands_id,
-            body_id,
-            skin_id,
-            tattoo_id,
-            people_id,
-            characteristic_id,
-            hobby_id,
-            zodiac_id,
-            action_id,
-            toys_id,
-            fruits_id,
-            vegetables_id,
-            meat_id,
-            beverages_id,
-            food_id,
-            vehicle_id,
-            weather_id,
-            month_id,
-            sports_id,
-            music_id,
-            movies_id,
-            season_id,
-            outfit_id,
-            face_id,
-            arm_id,
-            leg_id,
-            foot_id,
-            weapon_id,
-            helmet_id,
-            armor_id,
-            mecha_id,
-            pants_id,
-            skirt_id,
-        );
-
-        let id = NFT::get_id<KikoCatMeta, KikoCatBody>(&nft);
-        NFTGallery::deposit(sender, nft);
-        Event::emit_event<NFTMintEvent<KikoCatMeta, KikoCatBody>>(&mut gallery.nft_mint_events,
-            NFTMintEvent<KikoCatMeta, KikoCatBody> {
-                creator: sender_address,
-                id,
-                occupation,
-                custom_name,
-                original: false,
-                background_id,
-                fur_id,
-                clothes_id,
-                expression_id,
-                head_id,
-                accessories_id,
-                eyes_id,
-                hat_id,
-                costume_id,
-                makeup_id,
-                shoes_id,
-                mouth_id,
-                earring_id,
-                necklace_id,
-                neck_id,
-                hair_id,
-                horn_id,
-                hands_id,
-                body_id,
-                skin_id,
-                tattoo_id,
-                people_id,
-                characteristic_id,
-                hobby_id,
-                zodiac_id,
-                action_id,
-                toys_id,
-                fruits_id,
-                vegetables_id,
-                meat_id,
-                beverages_id,
-                food_id,
-                vehicle_id,
-                weather_id,
-                month_id,
-                sports_id,
-                music_id,
-                movies_id,
-                season_id,
-                outfit_id,
-                face_id,
-                arm_id,
-                leg_id,
-                foot_id,
-                weapon_id,
-                helmet_id,
-                armor_id,
-                mecha_id,
-                pants_id,
-                skirt_id,
-            },
-        );
-    }
-
     fun composit_nft(
         sender: &signer,
         metadata: NFT::Metadata,
         occupation: vector<u8>,
         custom_name: vector<u8>,
         original: bool,
+        sex: u8,
         background_id: u64,
         fur_id: u64,
         clothes_id: u64,
@@ -579,11 +227,16 @@ module KikoCatCard04 {
         mecha_id: u64,
         pants_id: u64,
         skirt_id: u64,
-    ) : NFT<KikoCatMeta, KikoCatBody> acquires KikoCatNFTCapability, ElementGallery {
+        left_hand_id: u64,
+        right_hand_id: u64,
+        pets_id: u64,
+        gifts_id: u64,
+        tail_id: u64,
+    ) : NFT<KikoCatMeta, KikoCatBody> acquires KikoCatNFTCapability, ElementGallery, KikoCatGallery {
         let sender_address = Signer::address_of(sender);
         assert(background_id + fur_id + clothes_id + expression_id + head_id > 0, ELEMENT_CANNOT_EMPTY);
 
-        let cap = borrow_global_mut<KikoCatNFTCapability>(sender_address);
+        let cap = borrow_global_mut<KikoCatNFTCapability>(NFT_ADDRESS);
         // get element
         let background = get_element_by_id(sender, background_id, 1u64);
         let fur = get_element_by_id(sender, fur_id, 2u64);
@@ -635,6 +288,11 @@ module KikoCatCard04 {
         let mecha = get_element_by_id(sender, mecha_id, 48u64);
         let pants = get_element_by_id(sender, pants_id, 49u64);
         let skirt = get_element_by_id(sender, skirt_id, 50u64);
+        let left_hand = get_element_by_id(sender, left_hand_id, 51u64);
+        let right_hand = get_element_by_id(sender, right_hand_id, 52u64);
+        let pets = get_element_by_id(sender, pets_id, 53u64);
+        let gifts = get_element_by_id(sender, gifts_id, 54u64);
+        let tail = get_element_by_id(sender, tail_id, 55u64);
 
         // sum score
         let score = 0;
@@ -688,6 +346,11 @@ module KikoCatCard04 {
         score = score + get_score(&mecha);
         score = score + get_score(&pants);
         score = score + get_score(&skirt);
+        score = score + get_score(&left_hand);
+        score = score + get_score(&right_hand);
+        score = score + get_score(&pets);
+        score = score + get_score(&gifts);
+        score = score + get_score(&tail);
 
         // mint card
         let card_nft = NFT::mint_with_cap<KikoCatMeta, KikoCatBody, KikoCatTypeInfo>(
@@ -695,9 +358,10 @@ module KikoCatCard04 {
             &mut cap.mint,
             metadata,
             KikoCatMeta {
-                occupation,
-                custom_name,
+                occupation: copy_vector(&occupation),
+                custom_name: copy_vector(&custom_name),
                 original,
+                sex,
                 score,
                 background_id,
                 fur_id,
@@ -749,6 +413,11 @@ module KikoCatCard04 {
                 mecha_id,
                 pants_id,
                 skirt_id,
+                left_hand_id,
+                right_hand_id,
+                pets_id,
+                gifts_id,
+                tail_id,
             },
             KikoCatBody {}
         );
@@ -806,9 +475,80 @@ module KikoCatCard04 {
             mecha,
             pants,
             skirt,
+            left_hand,
+            right_hand,
+            pets,
+            gifts,
+            tail,
         };
         let gallery = borrow_global_mut<ElementGallery>(NFT_ADDRESS);
         Vector::push_back(&mut gallery.items, element_info);
+        let card_gallery = borrow_global_mut<KikoCatGallery>(NFT_ADDRESS);
+        Event::emit_event<NFTMintEvent<KikoCatMeta, KikoCatBody>>(&mut card_gallery.nft_mint_events,
+            NFTMintEvent<KikoCatMeta, KikoCatBody> {
+                creator: NFT_ADDRESS,
+                id: card_id,
+                original: true,
+                occupation,
+                custom_name,
+                sex,
+                background_id,
+                fur_id,
+                clothes_id,
+                expression_id,
+                head_id,
+                accessories_id,
+                eyes_id,
+                hat_id,
+                costume_id,
+                makeup_id,
+                shoes_id,
+                mouth_id,
+                earring_id,
+                necklace_id,
+                neck_id,
+                hair_id,
+                horn_id,
+                hands_id,
+                body_id,
+                skin_id,
+                tattoo_id,
+                people_id,
+                characteristic_id,
+                hobby_id,
+                zodiac_id,
+                action_id,
+                toys_id,
+                fruits_id,
+                vegetables_id,
+                meat_id,
+                beverages_id,
+                food_id,
+                vehicle_id,
+                weather_id,
+                month_id,
+                sports_id,
+                music_id,
+                movies_id,
+                season_id,
+                outfit_id,
+                face_id,
+                arm_id,
+                leg_id,
+                foot_id,
+                weapon_id,
+                helmet_id,
+                armor_id,
+                mecha_id,
+                pants_id,
+                skirt_id,
+                left_hand_id,
+                right_hand_id,
+                pets_id,
+                gifts_id,
+                tail_id,
+            },
+        );
         return card_nft
     }
 
@@ -822,7 +562,7 @@ module KikoCatCard04 {
         assert(Option::is_some<NFT<ElementMeta, ElementBody>>(&option_nft), NFT_NOT_EXIST);
         // get nft
         let nft = Option::borrow<NFT<ElementMeta, ElementBody>>(&option_nft);
-        assert(KikoCatElement04::get_type_id(nft) == type_id, TYPE_NOT_MATCH);
+        assert(KikoCatElement05::get_type_id(nft) == type_id, TYPE_NOT_MATCH);
         return option_nft
     }
 
@@ -830,7 +570,7 @@ module KikoCatCard04 {
     fun get_score(option_nft: &Option<NFT<ElementMeta, ElementBody>>): u128 {
         if (Option::is_some<NFT<ElementMeta, ElementBody>>(option_nft)) {
             let nft = Option::borrow<NFT<ElementMeta, ElementBody>>(option_nft);
-            return KikoCatElement04::get_score(nft)
+            return KikoCatElement05::get_score(nft)
         };
         return 0
     }
@@ -972,6 +712,11 @@ module KikoCatCard04 {
                         mecha,
                         pants,
                         skirt,
+                        left_hand,
+                        right_hand,
+                        pets,
+                        gifts,
+                        tail,
                     } = info;
                     Option::destroy_none(background);
                     Option::destroy_none(fur);
@@ -1023,6 +768,11 @@ module KikoCatCard04 {
                     Option::destroy_none(mecha);
                     Option::destroy_none(pants);
                     Option::destroy_none(skirt);
+                    Option::destroy_none(left_hand);
+                    Option::destroy_none(right_hand);
+                    Option::destroy_none(pets);
+                    Option::destroy_none(gifts);
+                    Option::destroy_none(tail);
                     return
                 };
                 idx = idx - 1;
@@ -1067,6 +817,7 @@ module KikoCatCard04 {
         original: bool,
         occupation: vector<u8>,
         custom_name: vector<u8>,
+        sex: u8,
         background_id: u64,
         fur_id: u64,
         clothes_id: u64,
@@ -1117,6 +868,11 @@ module KikoCatCard04 {
         mecha_id: u64,
         pants_id: u64,
         skirt_id: u64,
+        left_hand_id: u64,
+        right_hand_id: u64,
+        pets_id: u64,
+        gifts_id: u64,
+        tail_id: u64,
     }
 
     // box open event
@@ -1223,6 +979,7 @@ module KikoCatCard04 {
         description: vector<u8>,
         occupation: vector<u8>,
         custom_name: vector<u8>,
+        sex: u8,
         background_id: u64,
         fur_id: u64,
         clothes_id: u64,
@@ -1273,16 +1030,23 @@ module KikoCatCard04 {
         mecha_id: u64,
         pants_id: u64,
         skirt_id: u64,
+        left_hand_id: u64,
+        right_hand_id: u64,
+        pets_id: u64,
+        gifts_id: u64,
+        tail_id: u64,
     )
     acquires KikoCatNFTCapability, KikoCatBoxCapability, KikoCatGallery, ElementGallery {
         let sender_address = Signer::address_of(&sender);
         assert(sender_address == NFT_ADDRESS, PERMISSION_DENIED);
         let metadata = NFT::new_meta_with_image(name, image, description);
-        composite_original_nft(
+        let nft = composit_nft(
             &sender,
             metadata,
             occupation,
             custom_name,
+            true,
+            sex,
             background_id,
             fur_id,
             clothes_id,
@@ -1333,7 +1097,16 @@ module KikoCatCard04 {
             mecha_id,
             pants_id,
             skirt_id,
+            left_hand_id,
+            right_hand_id,
+            pets_id,
+            gifts_id,
+            tail_id,
         );
+
+        let gallery = borrow_global_mut<KikoCatGallery>(NFT_ADDRESS);
+        Vector::push_back(&mut gallery.items, nft);
+
         mint_box(&sender, 1);
     }
 
@@ -1345,6 +1118,7 @@ module KikoCatCard04 {
         description: vector<u8>,
         occupation: vector<u8>,
         custom_name: vector<u8>,
+        sex: u8,
         background_id: u64,
         fur_id: u64,
         clothes_id: u64,
@@ -1395,15 +1169,27 @@ module KikoCatCard04 {
         mecha_id: u64,
         pants_id: u64,
         skirt_id: u64,
+        left_hand_id: u64,
+        right_hand_id: u64,
+        pets_id: u64,
+        gifts_id: u64,
+        tail_id: u64,
     ) acquires KikoCatNFTCapability, KikoCatGallery, ElementGallery {
-        let sender_address = Signer::address_of(&sender);
-        assert(sender_address == NFT_ADDRESS, PERMISSION_DENIED);
         let metadata = NFT::new_meta_with_image(name, image, description);
-        composite_custom_nft(
+        // get fee
+        let gallery = borrow_global_mut<KikoCatGallery>(NFT_ADDRESS);
+        let composite_fee = gallery.composite_fee;
+        let sender_address = Signer::address_of(&sender);
+        assert(Account::balance<STC>(sender_address) > composite_fee, INSUFFICIENT_BALANCE);
+        Account::pay_from<STC>(&sender, NFT_ADDRESS, composite_fee);
+
+        let nft = composit_nft(
             &sender,
             metadata,
             occupation,
             custom_name,
+            false,
+            sex,
             background_id,
             fur_id,
             clothes_id,
@@ -1454,7 +1240,13 @@ module KikoCatCard04 {
             mecha_id,
             pants_id,
             skirt_id,
+            left_hand_id,
+            right_hand_id,
+            pets_id,
+            gifts_id,
+            tail_id,
         );
+        NFTGallery::deposit(&sender, nft);
     }
 
     public(script) fun resolve_card(sender: signer, nft_id: u64)

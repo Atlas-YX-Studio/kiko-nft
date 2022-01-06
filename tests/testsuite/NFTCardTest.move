@@ -59,6 +59,8 @@ script {
 }
 // check: EXECUTED
 
+
+
 //! new-transaction
 //! sender: kiko
 address kiko = {{kiko}};
