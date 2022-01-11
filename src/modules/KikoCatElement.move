@@ -143,18 +143,50 @@ module KikoCatElement05 {
     // ******************** NFT public function ********************
 
     // init nft and box with image
+    public fun f_init_with_image(
+        sender: &signer,
+        name: vector<u8>,
+        image: vector<u8>,
+        description: vector<u8>,
+    ) {
+        assert(Signer::address_of(sender) == NFT_ADDRESS, PERMISSION_DENIED);
+        let metadata = NFT::new_meta_with_image(name, image, description);
+        init_nft(sender, metadata);
+        init_box(sender);
+        init_events(sender);
+        NFTGallery::accept<KikoCatMeta, KikoCatBody>(sender);
+    }
+
+    // mint NFT and box
+    public fun f_mint_with_image(
+        sender: &signer,
+        name: vector<u8>,
+        image: vector<u8>,
+        description: vector<u8>,
+        type: vector<u8>,
+        type_id: u64,
+        property: vector<u8>,
+        score: u128,
+    ) acquires KikoCatNFTCapability, Events {
+        let sender_address = Signer::address_of(sender);
+        assert(sender_address == NFT_ADDRESS, PERMISSION_DENIED);
+        let metadata = NFT::new_meta_with_image(name, image, description);
+        mint_nft(sender,
+            metadata,
+            type,
+            type_id,
+            property,
+            score,
+        );
+    }
+
     public(script) fun init_with_image(
         sender: signer,
         name: vector<u8>,
         image: vector<u8>,
         description: vector<u8>,
     ) {
-        assert(Signer::address_of(&sender) == NFT_ADDRESS, PERMISSION_DENIED);
-        let metadata = NFT::new_meta_with_image(name, image, description);
-        init_nft(&sender, metadata);
-        init_box(&sender);
-        init_events(&sender);
-        NFTGallery::accept<KikoCatMeta, KikoCatBody>(&sender);
+        f_init_with_image(&sender, name, image, description);
     }
 
     // mint NFT and box
@@ -168,16 +200,7 @@ module KikoCatElement05 {
         property: vector<u8>,
         score: u128,
     ) acquires KikoCatNFTCapability, Events {
-        let sender_address = Signer::address_of(&sender);
-        assert(sender_address == NFT_ADDRESS, PERMISSION_DENIED);
-        let metadata = NFT::new_meta_with_image(name, image, description);
-        mint_nft(&sender,
-            metadata,
-            type,
-            type_id,
-            property,
-            score,
-        );
+        f_mint_with_image(&sender, name, image, description, type, type_id, property, score);
     }
 
 }

@@ -580,10 +580,8 @@ module KikoCatCard05 {
         let option_nft = NFTGallery::withdraw<KikoCatMeta, KikoCatBody>(sender, nft_id);
         assert(Option::is_some<NFT<KikoCatMeta, KikoCatBody>>(&option_nft), NFT_NOT_EXIST);
         let nft = Option::extract<NFT<KikoCatMeta, KikoCatBody>>(&mut option_nft);
-        // get meta
-        let meta = NFT::get_type_meta<KikoCatMeta, KikoCatBody>(&nft);
         // deposit element to user
-        unstake_element(sender, meta.background_id);
+        unstake_element(sender, nft_id);
         // destroy card
         let cap = borrow_global_mut<KikoCatNFTCapability>(NFT_ADDRESS);
         let KikoCatBody {} = NFT::burn_with_cap<KikoCatMeta, KikoCatBody>(&mut cap.burn, nft);
@@ -775,8 +773,8 @@ module KikoCatCard05 {
                     Option::destroy_none(tail);
                     return
                 };
+                assert(idx > 0, NFT_NOT_EXIST);
                 idx = idx - 1;
-                assert(idx >= 0, NFT_NOT_EXIST);
             }
         }
     }
@@ -784,6 +782,7 @@ module KikoCatCard05 {
     fun deposit_nft(sender: &signer, option_nft: &mut Option<NFT<ElementMeta, ElementBody>>) {
         if (Option::is_some(option_nft)) {
             let nft = Option::extract(option_nft);
+            NFTGallery::accept<ElementMeta, ElementBody>(sender);
             NFTGallery::deposit(sender, nft);
         }
     }
@@ -1246,6 +1245,7 @@ module KikoCatCard05 {
             gifts_id,
             tail_id,
         );
+        NFTGallery::accept<KikoCatMeta, KikoCatBody>(&sender);
         NFTGallery::deposit(&sender, nft);
     }
 
