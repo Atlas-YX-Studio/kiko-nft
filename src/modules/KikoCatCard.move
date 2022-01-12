@@ -486,7 +486,7 @@ module KikoCatCard05 {
         let card_gallery = borrow_global_mut<KikoCatGallery>(NFT_ADDRESS);
         Event::emit_event<NFTMintEvent<KikoCatMeta, KikoCatBody>>(&mut card_gallery.nft_mint_events,
             NFTMintEvent<KikoCatMeta, KikoCatBody> {
-                creator: NFT_ADDRESS,
+                creator: sender_address,
                 id: card_id,
                 original: true,
                 occupation,
