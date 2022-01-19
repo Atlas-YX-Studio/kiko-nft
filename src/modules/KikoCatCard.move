@@ -1,5 +1,5 @@
 address 0x69F1E543A3BeF043B63BEd825fcd2cf6 {
-module KikoCatCard05 {
+module KikoCatCard07 {
     use 0x1::Signer;
     use 0x1::Event;
     use 0x1::Block;
@@ -10,7 +10,7 @@ module KikoCatCard05 {
     use 0x1::Account;
     use 0x1::NFT::{Self, NFT};
     use 0x1::NFTGallery;
-    use 0x69F1E543A3BeF043B63BEd825fcd2cf6::KikoCatElement05::{Self, KikoCatMeta as ElementMeta, KikoCatBody as ElementBody};
+    use 0x69F1E543A3BeF043B63BEd825fcd2cf6::KikoCatElement07::{Self, KikoCatMeta as ElementMeta, KikoCatBody as ElementBody};
 
     const NFT_ADDRESS: address = @0x69F1E543A3BeF043B63BEd825fcd2cf6;
 
@@ -562,7 +562,7 @@ module KikoCatCard05 {
         assert(Option::is_some<NFT<ElementMeta, ElementBody>>(&option_nft), NFT_NOT_EXIST);
         // get nft
         let nft = Option::borrow<NFT<ElementMeta, ElementBody>>(&option_nft);
-        assert(KikoCatElement05::get_type_id(nft) == type_id, TYPE_NOT_MATCH);
+        assert(KikoCatElement07::get_type_id(nft) == type_id, TYPE_NOT_MATCH);
         return option_nft
     }
 
@@ -570,7 +570,7 @@ module KikoCatCard05 {
     fun get_score(option_nft: &Option<NFT<ElementMeta, ElementBody>>): u128 {
         if (Option::is_some<NFT<ElementMeta, ElementBody>>(option_nft)) {
             let nft = Option::borrow<NFT<ElementMeta, ElementBody>>(option_nft);
-            return KikoCatElement05::get_score(nft)
+            return KikoCatElement07::get_score(nft)
         };
         return 0
     }

@@ -1,5 +1,5 @@
 address 0x69F1E543A3BeF043B63BEd825fcd2cf6 {
-module KikoCatElement05 {
+module KikoCatElement07 {
     use 0x1::Signer;
     use 0x1::Event;
     use 0x1::Token;
