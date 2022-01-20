@@ -658,6 +658,11 @@ module KikoCatCard07 {
                     deposit_nft(sender, &mut info.mecha);
                     deposit_nft(sender, &mut info.pants);
                     deposit_nft(sender, &mut info.skirt);
+                    deposit_nft(sender, &mut info.left_hand);
+                    deposit_nft(sender, &mut info.right_hand);
+                    deposit_nft(sender, &mut info.pets);
+                    deposit_nft(sender, &mut info.gifts);
+                    deposit_nft(sender, &mut info.tail);
                     let ElementInfo {
                         card_id: _,
                         background,
