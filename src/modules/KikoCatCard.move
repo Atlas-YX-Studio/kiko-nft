@@ -234,7 +234,14 @@ module KikoCatCard07 {
         tail_id: u64,
     ) : NFT<KikoCatMeta, KikoCatBody> acquires KikoCatNFTCapability, ElementGallery, KikoCatGallery {
         let sender_address = Signer::address_of(sender);
-        assert(background_id + fur_id + clothes_id + expression_id + head_id > 0, ELEMENT_CANNOT_EMPTY);
+        assert(background_id + fur_id + clothes_id + expression_id + head_id + accessories_id + eyes_id +
+               hat_id + costume_id + makeup_id + shoes_id + mouth_id + earring_id + necklace_id +
+               neck_id + hair_id + horn_id + hands_id + body_id + skin_id + tattoo_id + people_id +
+               characteristic_id + hobby_id + zodiac_id + action_id + toys_id + fruits_id + vegetables_id +
+               meat_id + beverages_id + food_id + vehicle_id + weather_id + month_id + sports_id +
+               music_id + movies_id + season_id + outfit_id + face_id + arm_id + leg_id + foot_id +
+               weapon_id + helmet_id + armor_id + mecha_id + pants_id + skirt_id + left_hand_id +
+               right_hand_id + pets_id + gifts_id + tail_id > 0, ELEMENT_CANNOT_EMPTY);
 
         let cap = borrow_global_mut<KikoCatNFTCapability>(NFT_ADDRESS);
         // get element
