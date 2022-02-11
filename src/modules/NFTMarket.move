@@ -709,6 +709,55 @@ module NFTMarket {
         Token::destroy_zero(bid_tokens);
     }
 
+    public fun box_offline_all<BoxToken: store, PayToken: store>(sender: &signer, amount: u64) acquires BoxSelling {
+        assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
+        assert(Signer::address_of(sender) == NFT_MARKET_ADDRESS, PERMISSION_DENIED);
+
+        let box_selling = borrow_global_mut<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
+        let len = Vector::length(&box_selling.items);
+        let limit = amount;
+        if (amount == 0 || amount > len) {
+            limit = len;
+        };
+        let i = 0;
+        while(i < limit) {
+            let box_sell_info = Vector::pop_back(&mut box_selling.items);
+            // give back bidToken to bidder
+            let bid_amount = Token::value<PayToken>(&box_sell_info.bid_tokens);
+            if (bid_amount > 0) {
+                let bid_tokens = Token::withdraw<PayToken>(&mut box_sell_info.bid_tokens, bid_amount);
+                Account::deposit(box_sell_info.bidder, bid_tokens);
+            };
+            // take back box
+            let box_tokens = Token::withdraw<BoxToken>(&mut box_sell_info.box_tokens, 1);
+            Account::deposit(box_sell_info.seller, box_tokens);
+            // emit event
+            Event::emit_event(
+                &mut box_selling.offline_events,
+                BoxOfflineEvent {
+                    id: box_sell_info.id,
+                    seller: box_sell_info.seller,
+                    box_token_code: Token::token_code<BoxToken>(),
+                    pay_token_code: Token::token_code<PayToken>(),
+                    quantity: 1,
+                    selling_price: box_sell_info.selling_price,
+                    bidder: box_sell_info.bidder,
+                    bid_price: bid_amount,
+                }
+            );
+            let BoxSellInfo<BoxToken, PayToken> {
+                id: _,
+                seller: _,
+                box_tokens,
+                selling_price: _,
+                bid_tokens,
+                bidder: _,
+            } = box_sell_info;
+            Token::destroy_zero(box_tokens);
+            Token::destroy_zero(bid_tokens);
+        }
+    }
+
 
     // ******************** NFT Transaction ********************
     // NFT selling list
@@ -1132,6 +1181,54 @@ module NFTMarket {
             };
             assert(i > 0, ID_NOT_EXIST);
             i = i - 1;
+        }
+    }
+
+    public fun nft_offline_all<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(sender: &signer, amount: u64)
+    acquires NFTSelling
+    {
+        assert(exists<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), NFT_SELL_INFO_NOT_EXISTS);
+        assert(Signer::address_of(sender) == NFT_MARKET_ADDRESS, PERMISSION_DENIED);
+
+        let nft_selling = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
+        let len = Vector::length(&nft_selling.items);
+        let limit = amount;
+        if (amount == 0 || amount > len) {
+            limit = len;
+        };
+        let i = 0;
+        while(i < limit) {
+            let nft_sell_info = Vector::pop_back(&mut nft_selling.items);
+            // give back payToken to bidder
+            let bid_amount = Token::value(&nft_sell_info.bid_tokens);
+            if (bid_amount > 0) {
+                let bid_tokens = Token::withdraw<PayToken>(&mut nft_sell_info.bid_tokens, bid_amount);
+                Account::deposit<PayToken>(nft_sell_info.bidder, bid_tokens);
+            };
+            // get back NFT
+            let nft = Option::extract(&mut nft_sell_info.nft);
+            NFTGallery::deposit_to<NFTMeta, NFTBody>(nft_sell_info.seller, nft);
+            Event::emit_event(&mut nft_selling.offline_events,
+                NFTOfflineEvent {
+                    seller: nft_sell_info.seller,
+                    id: nft_sell_info.id,
+                    pay_token_code: Token::token_code<PayToken>(),
+                    selling_price: nft_sell_info.selling_price,
+                    bid_price: bid_amount,
+                    bidder: nft_sell_info.bidder,
+                },
+            );
+            // destory
+            let NFTSellInfo<NFTMeta, NFTBody, PayToken> {
+                seller: _,
+                nft,
+                id: _,
+                selling_price: _,
+                bid_tokens,
+                bidder: _,
+            } = nft_sell_info;
+            Token::destroy_zero(bid_tokens);
+            Option::destroy_none(nft);
         }
     }
 
