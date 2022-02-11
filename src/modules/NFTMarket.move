@@ -758,6 +758,141 @@ module NFTMarket {
         }
     }
 
+    // ******************** Box Transaction v2 ********************
+    // box sell listing
+    struct BoxSellingV2<BoxToken: store, PayToken: store> has key, store {
+        // selling list
+        items: vector<BoxSellInfoV2<BoxToken, PayToken>>,
+        creator: address,
+        last_id: u128,
+        sell_events: Event::EventHandle<BoxSellEventV2>,
+        bid_events: Event::EventHandle<BoxBidEventV2>,
+        buy_events: Event::EventHandle<BoxBuyEventV2>,
+        accept_bid_events: Event::EventHandle<BoxAcceptBidEventV2>,
+    }
+
+    // box sell info
+    struct BoxSellInfoV2<BoxToken: store, PayToken: store> has store {
+        id: u128,
+        // 1: fixed price, 2: auction
+        type: u64,
+        // seller
+        seller: address,
+        // box tokens for selling
+        box_tokens: Token::Token<BoxToken>,
+        // selling price
+        selling_price: u128,
+        // top price bid tokens
+        bid_tokens: Token::Token<PayToken>,
+        // buyer address
+        bidder: address,
+        // end time
+        end_time: u128,
+    }
+
+    // box sell event
+    struct BoxSellEventV2 has drop, store {
+        // id
+        id: u128,
+        // sell type
+        type: u64,
+        // seller address
+        seller: address,
+        box_token_code: Token::TokenCode,
+        pay_token_code: Token::TokenCode,
+        // box quantity
+        quantity: u128,
+        // selling price
+        selling_price: u128,
+    }
+
+    // box offline event
+    struct BoxOfflineEventV2 has drop, store {
+        // id
+        id: u128,
+        // sell type
+        type: u64,
+        // seller address
+        seller: address,
+        box_token_code: Token::TokenCode,
+        pay_token_code: Token::TokenCode,
+        // box quantity
+        quantity: u128,
+        // selling price
+        selling_price: u128,
+        // buyer address
+        bidder: address,
+        // bid price
+        bid_price: u128,
+    }
+
+    // box buy event
+    struct BoxBuyEventV2 has drop, store {
+        // id
+        id: u128,
+        // seller address
+        seller: address,
+        box_token_code: Token::TokenCode,
+        pay_token_code: Token::TokenCode,
+        // box quantity
+        quantity: u128,
+        // final price
+        final_price: u128,
+        // buyer address
+        buyer: address,
+        // previous bidder address
+        prev_bidder: address,
+        // previous bidder price
+        prev_bid_price: u128,
+        // creator fee
+        creator_fee: u128,
+        // platform fee
+        platform_fee: u128,
+    }
+
+    // box bid price event
+    struct BoxBidEventV2 has drop, store {
+        // id
+        id: u128,
+        // seller address
+        seller: address,
+        box_token_code: Token::TokenCode,
+        pay_token_code: Token::TokenCode,
+        // box quantity
+        quantity: u128,
+        // selling price
+        selling_price: u128,
+        // bidder address
+        bidder: address,
+        // bid price
+        bid_price: u128,
+        // previous bidder address
+        prev_bidder: address,
+        // previous bidder price
+        prev_bid_price: u128,
+    }
+
+    // box accept bid event
+    struct BoxAcceptBidEventV2 has drop, store {
+        // id
+        id: u128,
+        // seller address
+        seller: address,
+        box_token_code: Token::TokenCode,
+        pay_token_code: Token::TokenCode,
+        // box quantity
+        quantity: u128,
+        // selling price
+        selling_price: u128,
+        // final price
+        final_price: u128,
+        // bidder address
+        bidder: address,
+        // creator fee
+        creator_fee: u128,
+        // platform fee
+        platform_fee: u128,
+    }
 
     // ******************** NFT Transaction ********************
     // NFT selling list
@@ -1230,6 +1365,94 @@ module NFTMarket {
             Token::destroy_zero(bid_tokens);
             Option::destroy_none(nft);
         }
+    }
+
+    // ******************** NFT Transaction V2 ********************
+    // NFT selling list
+    struct NFTSellingV2<NFTMeta: store + drop, NFTBody: store + drop, PayToken: store> has key, store {
+        // nft selling list
+        items: vector<NFTSellInfoV2<NFTMeta, NFTBody, PayToken>>,
+        sell_events: Event::EventHandle<NFTSellEventV2<NFTMeta, NFTBody>>,
+        offline_events: Event::EventHandle<NFTOfflineEventV2<NFTMeta, NFTBody>>,
+        bid_events: Event::EventHandle<NFTBidEventV2<NFTMeta, NFTBody>>,
+        buy_events: Event::EventHandle<NFTBuyEventV2<NFTMeta, NFTBody>>,
+        accept_bid_events: Event::EventHandle<NFTAcceptBidEventV2<NFTMeta, NFTBody>>,
+    }
+
+    // NFT extra sell info
+    struct NFTSellInfoV2<NFTMeta: store, NFTBody: store, PayToken: store> has store {
+        // 1: fixed price, 2: auction
+        type: u64,
+        seller: address,
+        // nft item
+        nft: Option<NFT<NFTMeta, NFTBody>>,
+        // nft id
+        id: u64,
+        // selling price
+        selling_price: u128,
+        // top price bid tokens
+        bid_tokens: Token::Token<PayToken>,
+        // buyer address
+        bidder: address,
+        // end time
+        end_time: u128,
+    }
+
+    // NFT sell event
+    struct NFTSellEventV2<NFTMeta: store + drop, NFTBody: store + drop> has drop, store {
+        type: u64,
+        seller: address,
+        id: u64,
+        pay_token_code: Token::TokenCode,
+        selling_price: u128,
+    }
+
+    // NFT offline event
+    struct NFTOfflineEventV2<NFTMeta: store + drop, NFTBody: store + drop> has drop, store {
+        type: u64,
+        seller: address,
+        id: u64,
+        pay_token_code: Token::TokenCode,
+        selling_price: u128,
+        bid_price: u128,
+        bidder: address,
+    }
+
+    // NFT buy event
+    struct NFTBuyEventV2<NFTMeta: store + drop, NFTBody: store + drop> has drop, store {
+        seller: address,
+        id: u64,
+        pay_token_code: Token::TokenCode,
+        final_price: u128,
+        buyer: address,
+        prev_bid_price: u128,
+        prev_bidder: address,
+        creator_fee: u128,
+        platform_fee: u128,
+    }
+
+    // NFT bid event
+    struct NFTBidEventV2<NFTMeta: store + drop, NFTBody: store + drop> has drop, store {
+        seller: address,
+        id: u64,
+        pay_token_code: Token::TokenCode,
+        selling_price: u128,
+        bid_price: u128,
+        bidder: address,
+        prev_bid_price: u128,
+        prev_bidder: address,
+    }
+
+    // NFT bid event
+    struct NFTAcceptBidEventV2<NFTMeta: store + drop, NFTBody: store + drop> has drop, store {
+        seller: address,
+        id: u64,
+        pay_token_code: Token::TokenCode,
+        selling_price: u128,
+        final_price: u128,
+        bidder: address,
+        creator_fee: u128,
+        platform_fee: u128,
     }
 
     // ******************** Platform Buyback ********************
