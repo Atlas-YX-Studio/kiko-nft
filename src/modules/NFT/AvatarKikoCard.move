@@ -614,7 +614,7 @@ module AvatarKikoCard {
             loop {
                 let info = Vector::borrow(&gallery.items, idx);
                 if (info.card_id == nft_id) {
-                    let info = Vector::remove<ElementInfo>(&mut gallery.items, idx);
+                    let info = Vector::swap_remove<ElementInfo>(&mut gallery.items, idx);
                     deposit_nft(sender, &mut info.background);
                     deposit_nft(sender, &mut info.fur);
                     deposit_nft(sender, &mut info.clothes);
