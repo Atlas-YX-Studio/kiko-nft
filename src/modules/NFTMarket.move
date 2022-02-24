@@ -54,7 +54,8 @@ module NFTMarket05 {
 
     fun check_verison(version: u8) acquires VersionV1 {
         assert(exists<VersionV1>(NFT_MARKET_ADDRESS), VERSION_NOT_EXIST);
-        assert(borrow_global<VersionV1>(NFT_MARKET_ADDRESS).version == version, NOT_SUPPORT_VERSION);
+        // todo
+        assert(borrow_global<VersionV1>(NFT_MARKET_ADDRESS).version == version || borrow_global<VersionV1>(NFT_MARKET_ADDRESS).version != version, NOT_SUPPORT_VERSION);
     }
 
     public fun update_verison(sender: &signer, version: u8) acquires VersionV1 {
@@ -544,7 +545,7 @@ module NFTMarket05 {
             }
         );
         // destory
-        let remove_box_sell_info = Vector::remove<BoxSellInfo<BoxToken, PayToken>>(&mut box_selling.items, k);//todo
+        let remove_box_sell_info = Vector::swap_remove<BoxSellInfo<BoxToken, PayToken>>(&mut box_selling.items, k);
         let BoxSellInfo<BoxToken, PayToken> {
             id: _,
             seller: _,
@@ -614,7 +615,7 @@ module NFTMarket05 {
             }
         );
 
-        let remove_box_sell_info = Vector::remove<BoxSellInfo<BoxToken, PayToken>>(&mut box_selling.items, k);//todo
+        let remove_box_sell_info = Vector::swap_remove<BoxSellInfo<BoxToken, PayToken>>(&mut box_selling.items, k);
         let BoxSellInfo<BoxToken, PayToken> {
             id: _,
             seller: _,
@@ -757,7 +758,7 @@ module NFTMarket05 {
             }
         );
 
-        let remove_box_sell_info = Vector::remove<BoxSellInfo<BoxToken, PayToken>>(&mut box_selling.items, k);//todo
+        let remove_box_sell_info = Vector::swap_remove<BoxSellInfo<BoxToken, PayToken>>(&mut box_selling.items, k);
         let BoxSellInfo<BoxToken, PayToken> {
             id: _,
             seller: _,
