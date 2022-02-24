@@ -48,14 +48,13 @@ module NFTMarket05 {
         platform_fee: u128
     }
 
-    struct VersionV1 has key, store {
+        struct VersionV1 has key, store {
         version: u8
     }
 
-    fun check_verison(version: u8) acquires VersionV1 {
-        assert(exists<VersionV1>(NFT_MARKET_ADDRESS), VERSION_NOT_EXIST);
-        // todo
-        assert(borrow_global<VersionV1>(NFT_MARKET_ADDRESS).version == version || borrow_global<VersionV1>(NFT_MARKET_ADDRESS).version != version, NOT_SUPPORT_VERSION);
+    fun check_verison(_version: u8) {//acquires VersionV1 {
+        // assert(exists<VersionV1>(NFT_MARKET_ADDRESS), VERSION_NOT_EXIST);
+        // assert(borrow_global<VersionV1>(NFT_MARKET_ADDRESS).version == version, NOT_SUPPORT_VERSION);
     }
 
     public fun update_verison(sender: &signer, version: u8) acquires VersionV1 {
@@ -415,7 +414,7 @@ module NFTMarket05 {
 
     // box sell
     public fun box_sell<BoxToken: store, PayToken: store>(seller: &signer, selling_price: u128) acquires BoxSelling {
-        // check_verison(1);
+        check_verison(1);
         assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
         assert(selling_price > 0, PRICE_TOO_LOW);
 
@@ -453,7 +452,7 @@ module NFTMarket05 {
 
     // box change price
     public fun box_change_price<BoxToken: store, PayToken: store>(seller: &signer, id: u128, selling_price: u128) acquires BoxSelling {
-        // check_verison(1);
+        check_verison(1);
         assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
         assert(selling_price > 0, PRICE_TOO_LOW);
 
@@ -501,7 +500,7 @@ module NFTMarket05 {
 
     // box offline
     public fun box_offline<BoxToken: store, PayToken: store>(seller: &signer, id: u128) acquires BoxSelling {
-        // check_verison(1);
+        check_verison(1);
         assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
         // find box
         let box_selling = borrow_global_mut<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
@@ -560,7 +559,7 @@ module NFTMarket05 {
 
     // box accept offer price
     public fun box_accept_bid<BoxToken: store, PayToken: store>(seller: &signer, id: u128) acquires BoxSelling, Config {
-        // check_verison(1);
+        check_verison(1);
         assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
 
         let box_selling = borrow_global_mut<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
@@ -630,7 +629,7 @@ module NFTMarket05 {
 
     // box bid
     public fun box_bid<BoxToken: store, PayToken: store>(buyer: &signer, id: u128, price: u128) acquires BoxSelling, Config {
-        // check_verison(1);
+        check_verison(1);
         assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
         assert(price > 0, PRICE_TOO_LOW);
 
@@ -696,7 +695,7 @@ module NFTMarket05 {
 
     // box buy
     public fun box_buy<BoxToken: store, PayToken: store>(buyer: &signer, id: u128) acquires BoxSelling, Config {
-        // check_verison(1);
+        check_verison(1);
         assert(exists<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
 
         let box_selling = borrow_global_mut<BoxSelling<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
@@ -962,7 +961,7 @@ module NFTMarket05 {
         platform_fee: u128,
     }
 
-    public fun box_sell_fix_price<BoxToken: store, PayToken: store>(sender: &signer, price: u128) acquires BoxSellingV2, VersionV1 {
+    public fun box_sell_fix_price<BoxToken: store, PayToken: store>(sender: &signer, price: u128) acquires BoxSellingV2 {
         check_verison(2);
         assert(exists<BoxSellingV2<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
         assert(0 < price, PRICE_TOO_LOW);
@@ -1004,7 +1003,7 @@ module NFTMarket05 {
         );
     }
 
-    public fun box_sell_auction<BoxToken: store, PayToken: store>(sender: &signer, price: u128, end_day: u64) acquires BoxSellingV2, VersionV1 {
+    public fun box_sell_auction<BoxToken: store, PayToken: store>(sender: &signer, price: u128, end_day: u64) acquires BoxSellingV2 {
         check_verison(2);
         assert(exists<BoxSellingV2<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
         assert(0 < price, PRICE_TOO_LOW);
@@ -1047,7 +1046,7 @@ module NFTMarket05 {
         );
     }
 
-    public fun box_buy_fix_price<BoxToken: store, PayToken: store>(sender: &signer, id: u128) acquires BoxSellingV2, Config, VersionV1 {
+    public fun box_buy_fix_price<BoxToken: store, PayToken: store>(sender: &signer, id: u128) acquires BoxSellingV2, Config {
         check_verison(2);
         assert(exists<BoxSellingV2<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
         let box_selling = borrow_global_mut<BoxSellingV2<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
@@ -1117,7 +1116,7 @@ module NFTMarket05 {
         Token::destroy_zero(bid_tokens);
     }
 
-    public fun box_buy_auction<BoxToken: store, PayToken: store>(sender: &signer, id: u128, price: u128) acquires BoxSellingV2, VersionV1 {
+    public fun box_buy_auction<BoxToken: store, PayToken: store>(sender: &signer, id: u128, price: u128) acquires BoxSellingV2 {
         check_verison(2);
         assert(exists<BoxSellingV2<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
         let box_selling = borrow_global_mut<BoxSellingV2<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
@@ -1177,7 +1176,7 @@ module NFTMarket05 {
         );
     }
 
-    public fun box_delivery<BoxToken: store, PayToken: store>(_sender: &signer, id: u128) acquires BoxSellingV2, Config, VersionV1 {
+    public fun box_delivery<BoxToken: store, PayToken: store>(_sender: &signer, id: u128) acquires BoxSellingV2, Config {
         check_verison(2);
         assert(exists<BoxSellingV2<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
         let box_selling = borrow_global_mut<BoxSellingV2<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
@@ -1235,7 +1234,7 @@ module NFTMarket05 {
         Token::destroy_zero(bid_tokens);
     }
 
-    public fun box_accept_bid_v2<BoxToken: store, PayToken: store>(sender: &signer, id: u128) acquires BoxSellingV2, Config, VersionV1 {
+    public fun box_accept_bid_v2<BoxToken: store, PayToken: store>(sender: &signer, id: u128) acquires BoxSellingV2, Config {
         check_verison(2);
         assert(exists<BoxSellingV2<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
         let box_selling = borrow_global_mut<BoxSellingV2<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
@@ -1311,7 +1310,7 @@ module NFTMarket05 {
         Token::destroy_zero(bid_tokens);
     }
 
-    public fun box_offline_v2<BoxToken: store, PayToken: store>(sender: &signer, id: u128) acquires BoxSellingV2, VersionV1 {
+    public fun box_offline_v2<BoxToken: store, PayToken: store>(sender: &signer, id: u128) acquires BoxSellingV2 {
         check_verison(2);
         assert(exists<BoxSellingV2<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
         let box_selling = borrow_global_mut<BoxSellingV2<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
@@ -1474,7 +1473,7 @@ module NFTMarket05 {
         id: u64,
         selling_price: u128
     ) acquires NFTSelling {
-        // check_verison(1);
+        check_verison(1);
         // NFTSelling exists
         assert(exists<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), OFFERING_NOT_EXISTS);
         assert(selling_price > 0, PRICE_TOO_LOW);
@@ -1514,7 +1513,7 @@ module NFTMarket05 {
         id: u64,
         selling_price: u128
     ) acquires NFTSelling {
-        // check_verison(1);
+        check_verison(1);
         // NFTSelling exists
         assert(exists<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), OFFERING_NOT_EXISTS);
         assert(selling_price > 0, PRICE_TOO_LOW);
@@ -1562,7 +1561,7 @@ module NFTMarket05 {
         account: &signer,
         id: u64,
     ) acquires NFTSelling {
-        // check_verison(1);
+        check_verison(1);
         assert(exists<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), OFFERING_NOT_EXISTS);
         let nft_selling = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
         let nft_sell_info = find_ntf_sell_info_by_id<NFTMeta, NFTBody, PayToken>(&mut nft_selling.items, id);
@@ -1607,7 +1606,7 @@ module NFTMarket05 {
         id: u64,
         price: u128
     ) acquires NFTSelling, Config {
-        // check_verison(1);
+        check_verison(1);
         assert(exists<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), OFFERING_NOT_EXISTS);
         assert(price > 0, PRICE_TOO_LOW);
 
@@ -1659,7 +1658,7 @@ module NFTMarket05 {
         account: &signer,
         id: u64
     ) acquires NFTSelling, Config {
-        // check_verison(1);
+        check_verison(1);
         let user_address = Signer::address_of(account);
         let nft_selling = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
         let nft_sell_info = find_ntf_sell_info_by_id<NFTMeta, NFTBody, PayToken>(&mut nft_selling.items, id);
@@ -1715,7 +1714,7 @@ module NFTMarket05 {
         account: &signer,
         id: u64
     ) acquires NFTSelling, Config {
-        // check_verison(1);
+        check_verison(1);
         let nft_selling = borrow_global_mut<NFTSelling<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
         let nft_sell_info = find_ntf_sell_info_by_id<NFTMeta, NFTBody, PayToken>(&mut nft_selling.items, id);
         f_nft_buy<NFTMeta, NFTBody, PayToken>(account, nft_sell_info);
@@ -1968,7 +1967,7 @@ module NFTMarket05 {
         platform_fee: u128,
     }
 
-    public fun nft_sell_fix_price<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(sender: &signer, id: u64, price: u128) acquires NFTSellingV2, VersionV1 {
+    public fun nft_sell_fix_price<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(sender: &signer, id: u64, price: u128) acquires NFTSellingV2 {
         check_verison(2);
         assert(exists<NFTSellingV2<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), OFFERING_NOT_EXISTS);
         assert(0 < price, PRICE_TOO_LOW);
@@ -2008,7 +2007,7 @@ module NFTMarket05 {
         );
     }
 
-    public fun nft_sell_auction<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(sender: &signer, id: u64, price: u128, end_day: u64) acquires NFTSellingV2, VersionV1 {
+    public fun nft_sell_auction<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(sender: &signer, id: u64, price: u128, end_day: u64) acquires NFTSellingV2 {
         check_verison(2);
         assert(exists<NFTSellingV2<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), OFFERING_NOT_EXISTS);
         assert(0 < price, PRICE_TOO_LOW);
@@ -2049,7 +2048,7 @@ module NFTMarket05 {
         );
     }
 
-    public fun nft_buy_fix_price<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(sender: &signer, id: u64) acquires NFTSellingV2, Config, VersionV1 {
+    public fun nft_buy_fix_price<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(sender: &signer, id: u64) acquires NFTSellingV2, Config {
         check_verison(2);
         assert(exists<NFTSellingV2<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), OFFERING_NOT_EXISTS);
         let nft_selling = borrow_global_mut<NFTSellingV2<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
@@ -2106,7 +2105,7 @@ module NFTMarket05 {
         Token::destroy_zero(bid_tokens);
     }
 
-    public fun nft_buy_auction<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(sender: &signer, id: u64, price: u128) acquires NFTSellingV2, VersionV1 {
+    public fun nft_buy_auction<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(sender: &signer, id: u64, price: u128) acquires NFTSellingV2 {
         check_verison(2);
         assert(exists<NFTSellingV2<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), OFFERING_NOT_EXISTS);
         let nft_selling = borrow_global_mut<NFTSellingV2<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
@@ -2114,8 +2113,19 @@ module NFTMarket05 {
         assert(0 < len, BOX_SELLING_IS_EMPTY);
 
         let bidder = Signer::address_of(sender);
-
-        let nft_sell_info = find_ntf_sell_info_by_id_v2<NFTMeta, NFTBody, PayToken>(&mut nft_selling.items, id);
+        
+        let k = 0;
+        let exist = false;
+        let nft_sell_info = Vector::borrow_mut(&mut nft_selling.items, 0);
+        while (k < len) {
+            nft_sell_info = Vector::borrow_mut(&mut nft_selling.items, k);
+            if (NFT::get_id(Option::borrow(&nft_sell_info.nft)) == id) {
+                exist = true;
+                break
+            };        
+            k = k + 1;
+        };
+        assert(exist, ID_NOT_EXIST);
         assert(2 == nft_sell_info.type, TYPE_MISMATCH);
         assert(price <= Account::balance<PayToken>(bidder), INSUFFICIENT_BALANCE);
         assert((Timestamp::now_milliseconds() as u128) < nft_sell_info.end_time, EXPIRED);
@@ -2150,22 +2160,9 @@ module NFTMarket05 {
                 prev_bid_price: bid_price
             }
         );
-
-        let NFTSellInfoV2<NFTMeta, NFTBody, PayToken> {
-            type: _,
-            seller: _,
-            nft,
-            id: _,
-            selling_price: _,
-            bid_tokens,
-            bidder: _,
-            end_time: _
-        } = nft_sell_info;
-        Option::destroy_none(nft);
-        Token::destroy_zero(bid_tokens);
     }    
 
-    public fun nft_delivery<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(_sender: &signer, id: u64) acquires NFTSellingV2, Config, VersionV1 {
+    public fun nft_delivery<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(_sender: &signer, id: u64) acquires NFTSellingV2, Config {
         check_verison(2);
         assert(exists<NFTSellingV2<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), OFFERING_NOT_EXISTS);
         let nft_selling = borrow_global_mut<NFTSellingV2<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
@@ -2212,7 +2209,7 @@ module NFTMarket05 {
         Token::destroy_zero(bid_tokens);
     }
 
-    public fun nft_accept_bid_v2<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(sender: &signer, id: u64) acquires NFTSellingV2, Config, VersionV1 {
+    public fun nft_accept_bid_v2<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(sender: &signer, id: u64) acquires NFTSellingV2, Config {
         check_verison(2);
         assert(exists<NFTSellingV2<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), OFFERING_NOT_EXISTS);
         let nft_selling = borrow_global_mut<NFTSellingV2<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
@@ -2272,7 +2269,7 @@ module NFTMarket05 {
         Token::destroy_zero(bid_tokens);
     }
 
-    public fun nft_offline_v2<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(sender: &signer, id: u64) acquires NFTSellingV2, VersionV1 {
+    public fun nft_offline_v2<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(sender: &signer, id: u64) acquires NFTSellingV2 {
         check_verison(2);
         assert(exists<NFTSellingV2<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), OFFERING_NOT_EXISTS);
         let nft_selling = borrow_global_mut<NFTSellingV2<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);
