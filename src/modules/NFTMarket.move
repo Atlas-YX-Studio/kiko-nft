@@ -1007,10 +1007,16 @@ module NFTMarket05 {
         check_verison(2);
         assert(exists<BoxSellingV2<BoxToken, PayToken>>(NFT_MARKET_ADDRESS), BOX_SELLING_NOT_EXIST);
         assert(0 < price, PRICE_TOO_LOW);
-        assert(1 <= end_day && end_day <= 7, AUCTION_DEADLINE_INVALID);
+        // assert(1 <= end_day && end_day <= 7, AUCTION_DEADLINE_INVALID);
 
         let seller = Signer::address_of(sender);
-        let end_time = ((Timestamp::now_milliseconds() + end_day * MILLISECONDS_DAY) as u128);
+        // todo
+        let end_time: u128;
+        if (end_day <= 7) {
+            end_time = ((Timestamp::now_milliseconds() + end_day * MILLISECONDS_DAY) as u128);
+        }else {
+            end_time = ((Timestamp::now_milliseconds() + end_day) as u128);
+        };
         let box_selling = borrow_global_mut<BoxSellingV2<BoxToken, PayToken>>(NFT_MARKET_ADDRESS);
         box_selling.last_id = box_selling.last_id + 1;
         Vector::push_back(
@@ -2011,10 +2017,16 @@ module NFTMarket05 {
         check_verison(2);
         assert(exists<NFTSellingV2<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), OFFERING_NOT_EXISTS);
         assert(0 < price, PRICE_TOO_LOW);
-        assert(1 <= end_day && end_day <= 7, AUCTION_DEADLINE_INVALID);
+        // assert(1 <= end_day && end_day <= 7, AUCTION_DEADLINE_INVALID);
 
         let seller = Signer::address_of(sender);
-        let end_time = ((Timestamp::now_milliseconds() + end_day * MILLISECONDS_DAY) as u128);
+        // todo
+        let end_time: u128;
+        if (end_day <= 7) {
+            end_time = ((Timestamp::now_milliseconds() + end_day * MILLISECONDS_DAY) as u128);
+        }else {
+            end_time = ((Timestamp::now_milliseconds() + end_day) as u128);
+        };
         let option_nft = NFTGallery::withdraw<NFTMeta, NFTBody>(sender, id);
         assert(Option::is_some<NFT<NFTMeta, NFTBody>>(&option_nft), ID_NOT_EXIST);
 
