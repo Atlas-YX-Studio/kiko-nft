@@ -1199,13 +1199,27 @@ module NFTMarket05 {
         assert(exist, ID_NOT_EXIST);
         assert(2 == box_sell_info.type, TYPE_MISMATCH);
         assert((Timestamp::now_milliseconds() as u128) > box_sell_info.end_time, UNEXPIRED);
-
+        let bid_price = Token::value<PayToken>(&box_sell_info.bid_tokens);
         let box_token = Token::withdraw<BoxToken>(&mut box_sell_info.box_tokens, 1);
         if (box_sell_info.bidder == @0x1) {
-            Account::deposit(box_sell_info.seller, box_token);        
+            Account::deposit(box_sell_info.seller, box_token);
+
+            Event::emit_event(
+                &mut box_selling.offline_events,
+                BoxOfflineEventV2 {
+                    id: box_sell_info.id,
+                    type: box_sell_info.type,
+                    seller: box_sell_info.seller,
+                    box_token_code: Token::token_code<BoxToken>(),
+                    pay_token_code: Token::token_code<PayToken>(),
+                    quantity: 1,
+                    selling_price: box_sell_info.selling_price,
+                    bidder: box_sell_info.bidder,
+                    bid_price: bid_price
+                }
+            );
         }else {
             Account::deposit(box_sell_info.bidder, box_token);
-            let bid_price = Token::value<PayToken>(&box_sell_info.bid_tokens);
             let (creator_fee, platform_fee) = get_fee(bid_price);
             if (0 < creator_fee) {
                 Account::deposit(box_selling.creator, Token::withdraw<PayToken>(&mut box_sell_info.bid_tokens, creator_fee));
@@ -1217,9 +1231,24 @@ module NFTMarket05 {
             if (0 < surplus_amount) {
                 Account::deposit(box_sell_info.seller, Token::withdraw<PayToken>(&mut box_sell_info.bid_tokens, surplus_amount));
             };
-        };
 
-        // todo event
+            Event::emit_event(
+                &mut box_selling.buy_events,
+                BoxBuyEventV2 {
+                    id: box_sell_info.id,
+                    seller: box_sell_info.seller,
+                    box_token_code: Token::token_code<BoxToken>(),
+                    pay_token_code: Token::token_code<PayToken>(),
+                    quantity: 1,
+                    final_price: bid_price,
+                    buyer: box_sell_info.bidder,
+                    prev_bidder: box_sell_info.bidder,
+                    prev_bid_price: bid_price,
+                    creator_fee: creator_fee,
+                    platform_fee: platform_fee
+                }
+            );
+        };
 
         let remove_box_sell_info = Vector::swap_remove<BoxSellInfoV2<BoxToken, PayToken>>(&mut box_selling.items, k);
         let BoxSellInfoV2<BoxToken, PayToken> {
@@ -2179,12 +2208,24 @@ module NFTMarket05 {
 
         let nft_ = Option::extract(&mut nft_sell_info.nft);
         let creator_address = NFT::get_creator<NFTMeta, NFTBody>(&nft_);
-
+        let bid_price = Token::value<PayToken>(&nft_sell_info.bid_tokens);
         if (nft_sell_info.bidder == @0x1) {
             NFTGallery::deposit_to<NFTMeta, NFTBody>(nft_sell_info.seller, nft_);
+
+            Event::emit_event(
+                &mut nft_selling.offline_events,
+                NFTOfflineEventV2 {
+                    type: nft_sell_info.type,
+                    seller: nft_sell_info.seller,
+                    id: nft_sell_info.id,
+                    pay_token_code: Token::token_code<PayToken>(),
+                    selling_price: nft_sell_info.selling_price,
+                    bidder: nft_sell_info.bidder,
+                    bid_price: bid_price
+                }
+            );
         }else {
             NFTGallery::deposit_to<NFTMeta, NFTBody>(nft_sell_info.bidder, nft_);
-            let bid_price = Token::value<PayToken>(&nft_sell_info.bid_tokens);
             let (creator_fee, platform_fee) = get_fee(bid_price);
             if (0 < creator_fee) {
                 Account::deposit<PayToken>(creator_address, Token::withdraw<PayToken>(&mut nft_sell_info.bid_tokens, creator_fee));
@@ -2196,9 +2237,22 @@ module NFTMarket05 {
             if (0 < surplus_amount) {
                 Account::deposit<PayToken>(nft_sell_info.seller, Token::withdraw<PayToken>(&mut nft_sell_info.bid_tokens, surplus_amount));
             };
-        };
 
-        // todo event
+            Event::emit_event(
+                &mut nft_selling.buy_events,
+                NFTBuyEventV2 {
+                    seller: nft_sell_info.seller,
+                    id: nft_sell_info.id,
+                    pay_token_code: Token::token_code<PayToken>(),
+                    final_price: bid_price,
+                    buyer: nft_sell_info.bidder,
+                    prev_bidder: nft_sell_info.bidder,
+                    prev_bid_price: bid_price,
+                    creator_fee: creator_fee,
+                    platform_fee: platform_fee
+                }
+            );
+        };
 
         let NFTSellInfoV2<NFTMeta, NFTBody, PayToken> {
             type: _,
