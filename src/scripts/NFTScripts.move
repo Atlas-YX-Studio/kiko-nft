@@ -152,10 +152,10 @@ module NFTScripts05 {
         NFTMarket05::nft_accept_bid_v2<NFTMeta, NFTBody, PayToken>(&sender, id);
     }
 
-    public(script) fun nft_offline_v2<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(sender: signer, id: u64) {
-        NFTMarket05::nft_offline_v2<NFTMeta, NFTBody, PayToken>(&sender, id);
+    public(script) fun nft_offline_v2<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(sender: signer, amount: u64) {
+        NFTMarket05::nft_offline_v2<NFTMeta, NFTBody, PayToken>(&sender, amount);
     }
-
+    
     // ******************** Box Transaction ********************
     //box sell
     public(script) fun box_sell<BoxToken: store, PayToken: store>(
@@ -235,6 +235,10 @@ module NFTScripts05 {
 
     public(script) fun box_offline_v2<BoxToken: store, PayToken: store>(sender: signer, id: u128) {
         NFTMarket05::box_offline_v2<BoxToken, PayToken>(&sender, id);
+    }
+
+    public(script) fun box_offline_all<BoxToken: store, PayToken: store>(sender: signer, amount: u64) {
+        NFTMarket05::box_offline_all<BoxToken, PayToken>(&sender, amount);
     }
 
     // ******************** Buy Back ********************
