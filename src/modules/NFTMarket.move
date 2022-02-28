@@ -1878,6 +1878,8 @@ module NFTMarket05 {
             } = nft_sell_info;
             Token::destroy_zero(bid_tokens);
             Option::destroy_none(nft);
+
+            i = i + 1;
         }
     }
 
@@ -2182,14 +2184,15 @@ module NFTMarket05 {
             NFTGallery::deposit_to<NFTMeta, NFTBody>(nft_sell_info.seller, nft_);
         }else {
             NFTGallery::deposit_to<NFTMeta, NFTBody>(nft_sell_info.bidder, nft_);
-            let (creator_fee, platform_fee) = get_fee(nft_sell_info.selling_price);
+            let bid_price = Token::value<PayToken>(&nft_sell_info.bid_tokens);
+            let (creator_fee, platform_fee) = get_fee(bid_price);
             if (0 < creator_fee) {
                 Account::deposit<PayToken>(creator_address, Token::withdraw<PayToken>(&mut nft_sell_info.bid_tokens, creator_fee));
             };
             if (0 < platform_fee) {
                 Account::deposit<PayToken>(NFT_MARKET_ADDRESS, Token::withdraw<PayToken>(&mut nft_sell_info.bid_tokens, platform_fee));
             };
-            let surplus_amount = nft_sell_info.selling_price - creator_fee - platform_fee;
+            let surplus_amount = bid_price - creator_fee - platform_fee;
             if (0 < surplus_amount) {
                 Account::deposit<PayToken>(nft_sell_info.seller, Token::withdraw<PayToken>(&mut nft_sell_info.bid_tokens, surplus_amount));
             };
