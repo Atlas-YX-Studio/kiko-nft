@@ -1231,19 +1231,18 @@ module NFTMarket05 {
             if (0 < surplus_amount) {
                 Account::deposit(box_sell_info.seller, Token::withdraw<PayToken>(&mut box_sell_info.bid_tokens, surplus_amount));
             };
-
+            
             Event::emit_event(
-                &mut box_selling.buy_events,
-                BoxBuyEventV2 {
+                &mut box_selling.accept_bid_events,
+                BoxAcceptBidEventV2 {
                     id: box_sell_info.id,
                     seller: box_sell_info.seller,
                     box_token_code: Token::token_code<BoxToken>(),
                     pay_token_code: Token::token_code<PayToken>(),
                     quantity: 1,
+                    selling_price: box_sell_info.selling_price,
                     final_price: bid_price,
-                    buyer: box_sell_info.bidder,
-                    prev_bidder: box_sell_info.bidder,
-                    prev_bid_price: bid_price,
+                    bidder: box_sell_info.bidder,
                     creator_fee: creator_fee,
                     platform_fee: platform_fee
                 }
@@ -2239,15 +2238,14 @@ module NFTMarket05 {
             };
 
             Event::emit_event(
-                &mut nft_selling.buy_events,
-                NFTBuyEventV2 {
+                &mut nft_selling.accept_bid_events,
+                NFTAcceptBidEventV2 {
                     seller: nft_sell_info.seller,
                     id: nft_sell_info.id,
                     pay_token_code: Token::token_code<PayToken>(),
+                    selling_price: nft_sell_info.selling_price,
                     final_price: bid_price,
-                    buyer: nft_sell_info.bidder,
-                    prev_bidder: nft_sell_info.bidder,
-                    prev_bid_price: bid_price,
+                    bidder: nft_sell_info.bidder,
                     creator_fee: creator_fee,
                     platform_fee: platform_fee
                 }
