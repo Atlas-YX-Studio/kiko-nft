@@ -1,4 +1,4 @@
-address 0x8355417c88d969f656935244641256ad {
+address 0x69f1e543a3bef043b63bed825fcd2cf6 {
 module AvatarKikoCardV2 {
     
     use 0x1::Signer;
@@ -9,9 +9,9 @@ module AvatarKikoCardV2 {
     use 0x1::Account;
     use 0x1::NFT::{Self, NFT};
     use 0x1::NFTGallery;
-    use 0x8355417c88d969f656935244641256ad::AvatarKikoCard::{Self, KikoCatMeta, KikoCatBody};
+    use 0x69f1e543a3bef043b63bed825fcd2cf6::AvatarKikoCard::{Self, KikoCatMeta, KikoCatBody};
 
-    const NFT_ADDRESS: address = @0x8355417c88d969f656935244641256ad;
+    const NFT_ADDRESS: address = @0xa85291039ddad8845d5097624c81c3fd;
 
     const PERMISSION_DENIED: u64 = 100001;
 
@@ -313,6 +313,5 @@ module AvatarKikoCardV2 {
         let gallery = borrow_global<KikoCatGallery>(owner);
         Vector::length(&gallery.items)
     }
-
 }
 }
