@@ -1,5 +1,5 @@
-address 0xa85291039ddad8845d5097624c81c3fd {
-module NFTMarket05 {
+address 0x7ed4261b68ddb20158109794bbab3ae7 {
+module NFTMarket {
 
     use 0x1::Event;
     use 0x1::Account;
@@ -11,12 +11,10 @@ module NFTMarket05 {
     use 0x1::NFT::{Self, NFT};
     use 0x1::NFTGallery;
     
-    const NFT_MARKET_ADDRESS: address = @0xa85291039ddad8845d5097624c81c3fd;
-    const NFT_MARKET_FEE_ADDRESS: address = @0x1C83D2046e59973F8B6fAA04cf4C3cF4;
+    const NFT_MARKET_ADDRESS: address = @0x7ed4261b68ddb20158109794bbab3ae7;
+    const NFT_MARKET_FEE_ADDRESS: address = @0x7ed4261b68ddb20158109794bbab3ae7;
 
-    //const MILLISECONDS_DAY: u64 = 86400000;
-    // todo
-    const MILLISECONDS_DAY: u64 = 60000;
+    const MILLISECONDS_DAY: u64 = 86400000;
     const MILLISECONDS_5_MIN: u64 = 300000;
 
     // error
@@ -57,6 +55,7 @@ module NFTMarket05 {
     fun check_verison(_version: u8) {//acquires VersionV1 {
         // assert(exists<VersionV1>(NFT_MARKET_ADDRESS), VERSION_NOT_EXIST);
         // assert(borrow_global<VersionV1>(NFT_MARKET_ADDRESS).version == version, NOT_SUPPORT_VERSION);
+        assert(2 == _version, NOT_SUPPORT_VERSION);
     }
 
     public fun update_verison(sender: &signer, version: u8) acquires VersionV1 {
