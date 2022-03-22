@@ -1,5 +1,5 @@
 address 0x8355417c88d969f656935244641256ad {
-module VividKIKOV2 {
+module VividKIKOV3 {
     use 0x1::Signer;
     use 0x1::Event;
     use 0x1::Block;
@@ -320,7 +320,7 @@ module VividKIKOV2 {
 
     // mint NFT and box
     public(script) fun mint_with_image(
-        sender: &signer,
+        sender_v2: signer,
         name: vector<u8>,
         image: vector<u8>,
         description: vector<u8>,
@@ -375,6 +375,7 @@ module VividKIKOV2 {
         pants: vector<u8>,
         skirt: vector<u8>,
     ) acquires KikoCatNFTCapability, KikoCatBoxCapability, KikoCatGallery {
+        let sender = &sender_v2;
         let sender_address = Signer::address_of(sender);
         assert(sender_address == NFT_ADDRESS, PERMISSION_DENIED);
         let metadata = NFT::new_meta_with_image(name, image, description);
