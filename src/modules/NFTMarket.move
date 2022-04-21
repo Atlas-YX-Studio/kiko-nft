@@ -2079,6 +2079,46 @@ module NFTMarket {
         );
     }
 
+    public fun nft_sell_auction_v2<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(sender: &signer, id: u64, price: u128, timestamp: u64) acquires NFTSellingV2 {
+        check_verison(2);
+        assert(exists<NFTSellingV2<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), OFFERING_NOT_EXISTS);
+        assert(0 < price, PRICE_TOO_LOW);
+
+        let seller = Signer::address_of(sender);
+        let end_time = ((Timestamp::now_milliseconds() + timestamp) as u128);
+        let option_nft = NFTGallery::withdraw<NFTMeta, NFTBody>(sender, id);
+        assert(Option::is_some<NFT<NFTMeta, NFTBody>>(&option_nft), ID_NOT_EXIST);
+
+        let nft_selling = borrow_global_mut<NFTSellingV2<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS);        
+        Vector::push_back(
+            &mut nft_selling.items,
+            NFTSellInfoV2<NFTMeta, NFTBody, PayToken> {
+                type: 2,
+                seller: seller,
+                nft: option_nft,
+                id: id,
+                selling_price: price,
+                bid_tokens: Token::zero<PayToken>(),
+                bidder: @0x1,
+                end_time: end_time
+            }
+        );
+
+        if (!Account::is_accepts_token<PayToken>(seller)){
+            Account::do_accept_token<PayToken>(sender);
+        };
+
+        Event::emit_event(&mut nft_selling.sell_events,
+            NFTSellEventV2 {
+                type: 2,
+                seller: seller,
+                id: id,
+                pay_token_code: Token::token_code<PayToken>(),
+                selling_price: price,
+            },
+        );
+    }
+
     public fun nft_buy_fix_price<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(sender: &signer, id: u64) acquires NFTSellingV2, Config {
         check_verison(2);
         assert(exists<NFTSellingV2<NFTMeta, NFTBody, PayToken>>(NFT_MARKET_ADDRESS), OFFERING_NOT_EXISTS);

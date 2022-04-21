@@ -136,6 +136,10 @@ module NFTScripts {
         NFTMarket::nft_sell_auction<NFTMeta, NFTBody, PayToken>(&sender, id, price, end_day);
     }
 
+    public(script) fun nft_sell_auction_v2<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(sender: signer, id: u64, price: u128, timestamp: u64) {
+        NFTMarket::nft_sell_auction_v2<NFTMeta, NFTBody, PayToken>(&sender, id, price, timestamp);
+    }
+
     public(script) fun nft_buy_fix_price<NFTMeta: copy + store + drop, NFTBody: store + drop, PayToken: store>(sender: signer, id: u64) {
         NFTMarket::nft_buy_fix_price<NFTMeta, NFTBody, PayToken>(&sender, id);
     }
