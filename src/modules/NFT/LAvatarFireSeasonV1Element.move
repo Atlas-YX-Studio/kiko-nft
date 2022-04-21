@@ -1,5 +1,5 @@
 address 0x69f1e543a3bef043b63bed825fcd2cf6 {
-module KAvatarIceSeasonV1Element {
+module LAvatarFireSeasonV1Element {
     use 0x1::Signer;
     use 0x1::Event;
     use 0x1::Token;

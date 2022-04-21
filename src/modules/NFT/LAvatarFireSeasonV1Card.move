@@ -1,5 +1,5 @@
 address 0x69f1e543a3bef043b63bed825fcd2cf6 {
-module KAvatarIceSeasonV1Card {
+module LAvatarFireSeasonV1Card {
     use 0x1::Signer;
     use 0x1::Event;
     use 0x1::Block;
@@ -10,7 +10,7 @@ module KAvatarIceSeasonV1Card {
     use 0x1::Account;
     use 0x1::NFT::{Self, NFT};
     use 0x1::NFTGallery;
-    use 0x69f1e543a3bef043b63bed825fcd2cf6::KAvatarIceSeasonV1Element::{Self, KikoCatMeta as ElementMeta, KikoCatBody as ElementBody};
+    use 0x69f1e543a3bef043b63bed825fcd2cf6::LAvatarFireSeasonV1Element::{Self, KikoCatMeta as ElementMeta, KikoCatBody as ElementBody};
 
     const NFT_ADDRESS: address = @0x69f1e543a3bef043b63bed825fcd2cf6;
 
@@ -569,7 +569,7 @@ module KAvatarIceSeasonV1Card {
         assert(Option::is_some<NFT<ElementMeta, ElementBody>>(&option_nft), NFT_NOT_EXIST);
         // get nft
         let nft = Option::borrow<NFT<ElementMeta, ElementBody>>(&option_nft);
-        assert(KAvatarIceSeasonV1Element::get_type_id(nft) == type_id, TYPE_NOT_MATCH);
+        assert(LAvatarFireSeasonV1Element::get_type_id(nft) == type_id, TYPE_NOT_MATCH);
         return option_nft
     }
 
@@ -577,7 +577,7 @@ module KAvatarIceSeasonV1Card {
     fun get_score(option_nft: &Option<NFT<ElementMeta, ElementBody>>): u128 {
         if (Option::is_some<NFT<ElementMeta, ElementBody>>(option_nft)) {
             let nft = Option::borrow<NFT<ElementMeta, ElementBody>>(option_nft);
-            return KAvatarIceSeasonV1Element::get_score(nft)
+            return LAvatarFireSeasonV1Element::get_score(nft)
         };
         return 0
     }

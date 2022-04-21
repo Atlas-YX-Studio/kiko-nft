@@ -1,5 +1,5 @@
 address 0x69f1e543a3bef043b63bed825fcd2cf6 {
-module AvatarKikoCardV2 {
+module KAvatarIceSeasonV3Card {
     
     use 0x1::Signer;
     use 0x1::Event;
@@ -9,9 +9,9 @@ module AvatarKikoCardV2 {
     use 0x1::Account;
     use 0x1::NFT::{Self, NFT};
     use 0x1::NFTGallery;
-    use 0x69f1e543a3bef043b63bed825fcd2cf6::AvatarKikoCard::{Self, KikoCatMeta, KikoCatBody};
+    use 0x69f1e543a3bef043b63bed825fcd2cf6::KAvatarIceSeasonV1Card::{Self, KikoCatMeta, KikoCatBody};
 
-    const NFT_ADDRESS: address = @0xa85291039ddad8845d5097624c81c3fd;
+    const NFT_ADDRESS: address = @0x69f1e543a3bef043b63bed825fcd2cf6;
 
     const PERMISSION_DENIED: u64 = 100001;
 
@@ -210,7 +210,7 @@ module AvatarKikoCardV2 {
         
         NFTGallery::accept<KikoCatMeta, KikoCatBody>(_sender);
 
-        let nft = AvatarKikoCard::composite_original_card_from_external(
+        let nft = KAvatarIceSeasonV1Card::composite_original_card_from_external(
             _sender,
             name,
             image,
