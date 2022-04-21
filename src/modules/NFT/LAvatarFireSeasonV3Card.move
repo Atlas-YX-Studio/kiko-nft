@@ -140,7 +140,7 @@ module LAvatarFireSeasonV3Card {
         };
     }
 
-    public(script) fun mint_nft(
+    public(script) fun composite_original_card(
         sender: signer,
         name: vector<u8>,
         image: vector<u8>,
