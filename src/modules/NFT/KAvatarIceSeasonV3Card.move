@@ -15,7 +15,13 @@ module KAvatarIceSeasonV3Card {
 
     const PERMISSION_DENIED: u64 = 100001;
 
-    public(script) fun init(sender: signer) {
+    public(script) fun init_with_image(
+        sender: signer,
+        _name: vector<u8>,
+        _image: vector<u8>,
+        _description: vector<u8>,
+        _composite_fee: u128
+    ) {
         init_box(&sender);
         init_gallery(&sender);
     }
