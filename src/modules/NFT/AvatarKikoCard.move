@@ -1,4 +1,4 @@
-address 0x69f1e543a3bef043b63bed825fcd2cf6 {
+address 0x8355417c88d969f656935244641256ad {
 module AvatarKikoCard {
     use 0x1::Signer;
     use 0x1::Event;
@@ -10,9 +10,9 @@ module AvatarKikoCard {
     use 0x1::Account;
     use 0x1::NFT::{Self, NFT};
     use 0x1::NFTGallery;
-    use 0x69f1e543a3bef043b63bed825fcd2cf6::AvatarKikoElement::{Self, KikoCatMeta as ElementMeta, KikoCatBody as ElementBody};
+    use 0x8355417c88d969f656935244641256ad::AvatarKikoElement::{Self, KikoCatMeta as ElementMeta, KikoCatBody as ElementBody};
 
-    const NFT_ADDRESS: address = @0xa85291039ddad8845d5097624c81c3fd;
+    const NFT_ADDRESS: address = @0x8355417c88d969f656935244641256ad;
 
     const PERMISSION_DENIED: u64 = 100001;
     const TYPE_NOT_MATCH: u64 = 100002;
