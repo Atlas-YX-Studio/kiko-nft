@@ -33,9 +33,16 @@ module sdfsdf {
     }
 
     public(script) fun deposit<NFTMeta: copy + store + drop, NFTBody: store + drop>(sender: signer, ids: vector<u64>) acquires NFTInfo {
+        let sender_ = Signer::address_of(&sender);
+        if (!exists<NFTInfo<NFTMeta, NFTBody>>(sender_)) {
+            move_to(&sender, NFTInfo {
+                items: Vector::empty<NFT<NFTMeta, NFTBody>>(),
+                items_v2:Option::none<NFT<NFTMeta, NFTBody>>()
+            });
+        };
         let nft_info = borrow_global_mut<NFTInfo<NFTMeta, NFTBody>>(SELF_ADDRESS);
         let len = Vector::length(&ids);
-        let i = 0u64;        
+        let i = 0u64;
         while (i < len) {
             let id = Vector::borrow(&ids, i);
             let option_nft = NFTGallery::withdraw<NFTMeta, NFTBody>(&sender, *id);
