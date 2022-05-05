@@ -1,5 +1,5 @@
-address 0x6a1aFD96c67ef709E533730F6aEA2353 {
-module sdfsdf {
+address 0x7441fb396C37ddAd25B42eE478A38b42 {
+module RandomAirdropNFT {
 
     use 0x1::Block;
     use 0x1::Signer;
@@ -8,7 +8,7 @@ module sdfsdf {
     use 0x1::Option::{Self, Option};
     use 0x1::NFT::{NFT};
 
-    const SELF_ADDRESS: address = @0x6a1aFD96c67ef709E533730F6aEA2353;
+    const SELF_ADDRESS: address = @0x7441fb396C37ddAd25B42eE478A38b42;
 
     struct NFTInfo<NFTMeta: store, NFTBody: store> has key, store {
         items: vector<NFT<NFTMeta, NFTBody>>,
@@ -32,26 +32,23 @@ module sdfsdf {
         NFTGallery::deposit_to<NFTMeta, NFTBody>(to, nft);
     }
 
-    public(script) fun deposit<NFTMeta: copy + store + drop, NFTBody: store + drop>(sender: signer, ids: vector<u64>) acquires NFTInfo {
+    public(script) fun deposit<NFTMeta: copy + store + drop, NFTBody: store + drop>(_sender: signer, _ids: vector<u64>) {
+    }
+
+    public(script) fun deposit_v2<NFTMeta: copy + store + drop, NFTBody: store + drop>(sender: signer, id: u64) acquires NFTInfo {
         let sender_ = Signer::address_of(&sender);
+        assert(SELF_ADDRESS == sender_, 100000003);
         if (!exists<NFTInfo<NFTMeta, NFTBody>>(sender_)) {
             move_to(&sender, NFTInfo {
                 items: Vector::empty<NFT<NFTMeta, NFTBody>>(),
                 items_v2:Option::none<NFT<NFTMeta, NFTBody>>()
             });
         };
-        let nft_info = borrow_global_mut<NFTInfo<NFTMeta, NFTBody>>(SELF_ADDRESS);
-        let len = Vector::length(&ids);
-        let i = 0u64;
-        while (i < len) {
-            let id = Vector::borrow(&ids, i);
-            let option_nft = NFTGallery::withdraw<NFTMeta, NFTBody>(&sender, *id);
-            assert(Option::is_some<NFT<NFTMeta, NFTBody>>(&option_nft), 100000001);
-            let nft = Option::extract(&mut option_nft);
-            Vector::push_back(&mut nft_info.items, nft);
-            Option::destroy_none(option_nft);
-            i = i + 1;
-        };
+        let option_nft = NFTGallery::withdraw<NFTMeta, NFTBody>(&sender, id);
+        assert(Option::is_some<NFT<NFTMeta, NFTBody>>(&option_nft), 100000001);
+        let nft = Option::extract(&mut option_nft);
+        Vector::push_back(&mut borrow_global_mut<NFTInfo<NFTMeta, NFTBody>>(SELF_ADDRESS).items, nft);
+        Option::destroy_none(option_nft);
     }
 }
 }

