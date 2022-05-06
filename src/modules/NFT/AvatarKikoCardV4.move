@@ -1,5 +1,5 @@
 address 0x8355417c88d969f656935244641256ad {
-module AvatarKikoCardV2 {
+module AvatarKikoCardV4 {
     
     use 0x1::Signer;
     use 0x1::Event;
