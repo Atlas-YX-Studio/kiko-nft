@@ -16,6 +16,7 @@ module AvatarKikoCardV3 {
     const PERMISSION_DENIED: u64 = 100001;
 
     public(script) fun init(sender: signer) {
+        assert(NFT_ADDRESS == Signer::address_of(&sender), PERMISSION_DENIED);
         init_box(&sender);
         init_gallery(&sender);
     }
